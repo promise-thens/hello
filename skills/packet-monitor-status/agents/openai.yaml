@@ -1,0 +1,5 @@
+interface:
+  display_name: "包监控状态"
+  short_description: "检查网关、扩展、规则与断点连接状态"
+  brand_color: "#0EA5E9"
+  default_prompt: "使用 $packet-monitor-status 检查包监控网关和扩展状态。"

@@ -1,0 +1,5 @@
+interface:
+  display_name: "请求重放"
+  short_description: "重发请求、对比响应并导出完整 curl"
+  brand_color: "#A855F7"
+  default_prompt: "使用 $packet-monitor-replay 重放选中的请求并对比响应。"

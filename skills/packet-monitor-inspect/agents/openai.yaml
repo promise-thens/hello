@@ -1,0 +1,5 @@
+interface:
+  display_name: "抓包分析"
+  short_description: "查看完整请求响应并定位失败或慢请求"
+  brand_color: "#22C55E"
+  default_prompt: "使用 $packet-monitor-inspect 查看最近抓包并找出异常请求。"

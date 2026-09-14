@@ -1,0 +1,5 @@
+interface:
+  display_name: "断点调试"
+  short_description: "暂停、修改、Mock 或丢弃匹配请求"
+  brand_color: "#F97316"
+  default_prompt: "使用 $packet-monitor-intercept 拦截下一次匹配请求。"

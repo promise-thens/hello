@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "packet-monitor": {
+      "command": "node",
+      "args": ["./mcp/packet_monitor_mcp.mjs"],
+      "cwd": "."
+    }
+  }
+}

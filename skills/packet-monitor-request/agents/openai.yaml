@@ -1,0 +1,7 @@
+interface:
+  display_name: "包监控请求"
+  short_description: "编辑并发送 HTTP 请求，回看网关响应"
+  default_prompt: "使用 $packet-monitor-request 编辑并发送一条 HTTP 请求，然后核对响应和抓包记录。"
+
+policy:
+  allow_implicit_invocation: true

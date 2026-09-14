@@ -1,0 +1,8 @@
+# 运行时缓存与编译产物，不入库
+__pycache__/
+*.pyc
+.DS_Store
+
+# 网关运行痕迹：日志和最近打开的业务页地址
+gateway/gateway.log
+gateway/last-page-url.txt

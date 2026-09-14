@@ -1,0 +1,2876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <!-- 基础字符集与移动端/分屏自适应视口设置 -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>包监控 - 抓包与请求调试控制台</title>
+  <style>
+    /* ========================================================
+       【全局变量定义与基础重置】
+       针对 Codex 分屏优化设计：高对比极客暗黑风，微光边框与平滑过渡
+       ======================================================== */
+    :root {
+      --bg-surface: #0b0f18;
+      --panel-bg: #111725;
+      --card-bg: #151d2d;
+      --card-active: rgba(139, 143, 247, 0.14);
+      --card-border: rgba(156, 163, 175, 0.15);
+      --card-border-hover: rgba(139, 143, 247, 0.55);
+      --card-border-active: #8b8ff7;
+      
+      --text-main: #f3f4f6;
+      --text-sub: #9ba7ba;
+      --text-muted: #6d778a;
+      
+      --primary: #8b8ff7;
+      --primary-hover: #7378e8;
+      --primary-glow: rgba(139, 143, 247, 0.22);
+      
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #51c9d9;
+      --purple: #8b5cf6;
+      --pink: #ec4899;
+
+      --code-bg: #030712;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+      --radius-sm: 6px;
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      /* 中文界面使用无衬线字体，只有 URL 与报文内容保留等宽字体，避免整页像代码终端。 */
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      font-size: 13px;
+    }
+
+    /* 滚动条美化 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* ========================================================
+       【顶部导航控制栏】
+       包含标题、状态呼吸灯、模拟触发、清空按钮
+       ======================================================== */
+    .top-header {
+      background: #101522;
+      border-bottom: 1px solid var(--card-border);
+      padding: 9px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    .brand-logo {
+      width: 30px;
+      height: 30px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      box-shadow: 0 6px 16px rgba(139, 143, 247, 0.2);
+    }
+
+    .brand-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-subtitle {
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      background: rgba(16, 185, 129, 0.1);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 11px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: var(--transition);
+      outline: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #101322;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-sub);
+      border-color: var(--card-border);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+    }
+
+    /* ========================================================
+       【双栏核心主体容器】
+       分屏优化：左侧抓包瀑布流，右侧详情与规则管理器
+       ======================================================== */
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      width: 100%;
+      background: var(--bg-surface);
+    }
+
+    /* ---------------- 左侧：抓包瀑布流 ---------------- */
+    .traffic-pane {
+      width: 40%;
+      min-width: 350px;
+      max-width: 500px;
+      border-right: 1px solid var(--card-border);
+      background: #0d131f;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .pane-header {
+      min-height: 48px;
+      padding: 11px 16px;
+      background: #101724;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    .traffic-count {
+      color: var(--text-sub);
+    }
+
+    .traffic-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 抓包卡片项 */
+    .traffic-item {
+      background: #111927;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 10px 11px;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      user-select: none;
+    }
+
+    .traffic-item:hover {
+      border-color: var(--card-border-hover);
+      background: rgba(30, 41, 59, 0.9);
+      transform: translateX(1px);
+    }
+
+    .traffic-item.active {
+      border-color: var(--card-border-active);
+      background: var(--card-active);
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+    }
+
+    .item-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .item-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* 请求方法彩色胶囊药丸 */
+    .method-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+    .method-get { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .method-post { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .method-put { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .method-delete { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    /* 状态码徽章 */
+    .status-badge-sm {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    .status-2xx { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+    .status-3xx { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
+    .status-4xx { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .status-5xx { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    /* 特殊功能标签 (Mock / 篡改) */
+    .tag-mock {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: rgba(236, 72, 153, 0.2);
+      color: #f472b6;
+      border: 1px solid rgba(236, 72, 153, 0.3);
+    }
+    .tag-mod {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: rgba(139, 92, 246, 0.2);
+      color: #c084fc;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    .item-url {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-main);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .item-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .empty-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: auto;
+      flex: 1;
+      min-height: 250px;
+      margin: 0;
+      gap: 7px;
+      color: var(--text-muted);
+      font-size: 12px;
+      text-align: center;
+      padding: 28px 22px;
+      background: rgba(17, 25, 39, 0.55);
+      border: 1px dashed rgba(156, 163, 175, 0.16);
+      border-radius: 12px;
+    }
+
+    .empty-icon {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      margin-bottom: 4px;
+      border: 1px solid rgba(139, 143, 247, 0.22);
+      border-radius: 11px;
+      background: rgba(139, 143, 247, 0.08);
+      color: var(--primary);
+      font-size: 18px;
+    }
+
+    .empty-title {
+      color: var(--text-sub);
+      font-weight: 600;
+    }
+
+    .empty-copy {
+      max-width: 300px;
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    /* ---------------- 右侧：工作区 (审查详情 + 规则管理器) ---------------- */
+    .detail-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #111725;
+      overflow: hidden;
+    }
+
+    /* 顶部工作区大 Tab */
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      height: 48px;
+      padding: 0 18px;
+      background: #111725;
+      border-bottom: 1px solid var(--card-border);
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      height: 48px;
+      padding: 0 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-sub);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    /* Tab 内容区 */
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      display: none;
+      flex-direction: column;
+    }
+    .tab-content.active {
+      display: flex;
+    }
+
+    /* ---------------- 详情审查区样式 ---------------- */
+    .inspect-meta-bar {
+      padding: 12px 18px;
+      background: #0f1522;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      font-size: 11px;
+      color: var(--text-sub);
+    }
+    .inspect-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .inspect-meta-item strong {
+      color: var(--text-main);
+    }
+    /* 中文说明：劫持时方法/URL/状态要能直接改，再点发送。 */
+    .inspect-meta-control {
+      min-width: 88px;
+      height: 28px;
+      padding: 2px 8px;
+      font-size: 12px;
+    }
+    .inspect-meta-url {
+      width: 100%;
+    }
+    .inspect-meta-url .form-input {
+      flex: 1;
+      min-width: 180px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #38bdf8;
+    }
+    .inspect-hint {
+      margin: 0;
+      font-size: 11px;
+      color: var(--text-sub);
+      line-height: 1.45;
+      white-space: normal;
+    }
+    .inspect-hint.hot { color: #f472b6; }
+    #inspectSendHint {
+      margin: 0 16px 8px;
+    }
+
+    /* 中文说明：审查区改成工具台布局，JSON 树和编辑器要占满剩余高度。 */
+    .sub-content {
+      padding: 10px 12px 12px;
+      flex: 1;
+      overflow: hidden;
+      display: none;
+      min-height: 0;
+    }
+    .sub-content.active {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .kv-block { display: flex; flex-direction: column; gap: 6px; min-height: 0; flex: 1; }
+    .kv-block + .kv-block { margin-top: 4px; }
+    .kv-title { font-size: 11px; font-weight: 700; color: var(--text-sub); }
+    .kv-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow: auto;
+      min-height: 72px;
+      max-height: 28vh;
+      padding: 6px;
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+    }
+    .kv-row { display: grid; grid-template-columns: minmax(120px, 28%) 1fr 28px; gap: 6px; align-items: center; }
+    .kv-row input {
+      height: 28px;
+      padding: 0 8px;
+      background: #101826;
+      border: 1px solid var(--card-border);
+      border-radius: 5px;
+      color: var(--text-main);
+      font-size: 12px;
+      letter-spacing: 0;
+    }
+    .kv-row .kv-key { color: #7dd3fc; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .kv-row .kv-val { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .kv-del {
+      height: 28px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .kv-del:hover { color: #f87171; }
+    .sync-textarea { display: none; }
+
+    .json-workbench {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #0d1420;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .json-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .json-status {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 700;
+      color: #86efac;
+      font-variant-numeric: tabular-nums;
+    }
+    .json-status.bad { color: #fbbf24; }
+    .json-status.muted { color: var(--text-muted); }
+    .json-tree {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 8px 10px;
+      background: #101826;
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      letter-spacing: 0;
+    }
+    .json-node { margin-left: 0; }
+    .json-kids { margin-left: 16px; border-left: 1px solid rgba(148,163,184,0.18); padding-left: 8px; }
+    .json-node.collapsed > .json-kids { display: none; }
+    .json-row {
+      display: block;
+      line-height: 1.55;
+      padding: 1px 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .json-row > * { display: inline; }
+    .json-toggle {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 0;
+      vertical-align: top;
+    }
+    .json-leaf { padding-left: 16px; }
+    .jk { color: #9ae6ff; }
+    .js { color: #bbf7d0; }
+    .jn { color: #fcd34d; }
+    .jb { color: #fecdd3; }
+    .jp { color: #64748b; }
+    .jm { color: #94a3b8; font-size: 11px; }
+    .json-val {
+      border: none;
+      background: transparent;
+      padding: 0;
+      cursor: text;
+      font: inherit;
+      text-align: left;
+    }
+    .json-val:hover { background: rgba(255,255,255,0.04); border-radius: 3px; }
+    .json-leaf-input {
+      flex: 1;
+      min-width: 80px;
+      height: 24px;
+      padding: 0 6px;
+      background: #101826;
+      border: 1px solid var(--primary);
+      border-radius: 4px;
+      color: var(--text-main);
+      font: inherit;
+    }
+    .json-more { color: var(--text-muted); font-size: 11px; padding: 4px 0 4px 16px; }
+    /* 中文说明：高亮层叠在 textarea 下面，共用外层滚动，避免光标和着色错位。 */
+    .json-edit-wrap {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      background: #101826;
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 6px;
+    }
+    .json-stack {
+      position: relative;
+      min-height: 100%;
+      min-width: 100%;
+      width: max-content; /* 中文说明：单行超长时撑开宽度，避免水平溢出导致图层错位 */
+      padding: 12px 14px;
+      box-sizing: border-box;
+    }
+    .json-highlight, .json-input {
+      margin: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
+      outline: none !important;
+      width: 100%;
+      box-sizing: border-box !important;
+      white-space: pre !important;
+      word-wrap: normal !important;
+      overflow-wrap: normal !important;
+      word-break: normal !important;
+      tab-size: 2 !important;
+      letter-spacing: 0px !important;
+      word-spacing: 0px !important;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace !important;
+      font-size: 12px !important;
+      font-weight: 400 !important;
+      font-style: normal !important;
+      font-kerning: none !important;
+      font-variant-ligatures: none !important;
+      line-height: 20px !important;
+      text-align: left !important;
+      text-indent: 0 !important;
+      text-rendering: auto !important;
+      -webkit-font-smoothing: antialiased !important;
+    }
+    /* 中文说明：核心修复——强制高亮语法树中所有 span 子标签使用与 textarea 完全一致的等宽字体与排版度量，防止被全局 * 污染为非等宽无衬线字体导致严重光标错位 */
+    .json-highlight * {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace !important;
+      font-size: 12px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0px !important;
+      word-spacing: 0px !important;
+      line-height: 20px !important;
+      font-variant-ligatures: none !important;
+      text-indent: 0 !important;
+    }
+    .json-highlight {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      right: 14px;
+      pointer-events: none;
+      color: #d7deea;
+      background: transparent;
+      overflow: hidden;
+    }
+    .json-input {
+      position: relative;
+      display: block;
+      min-height: calc(100% - 24px);
+      z-index: 1;
+      color: transparent;
+      caret-color: #f8fafc;
+      background: transparent;
+      resize: none;
+      outline: none !important;
+      overflow: hidden;
+      appearance: none;
+      -webkit-appearance: none;
+      border-radius: 0;
+    }
+    .json-input:focus-visible {
+      outline: none !important;
+    }
+    .json-input::placeholder { color: #6d778a; }
+    .json-input::selection { background: rgba(125, 211, 252, 0.28); color: transparent; }
+
+    /* 详情内子 Tab (Headers / Req Body / Res Body) */
+    .sub-tabs {
+      display: flex;
+      padding: 10px 18px 8px;
+      background: #111725;
+      border-bottom: 1px solid var(--card-border);
+      gap: 6px;
+    }
+
+    .sub-tab-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      color: var(--text-sub);
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .sub-tab-btn.active {
+      background: var(--card-active);
+      color: var(--primary);
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+
+
+    /* 代码与数据美化面板 */
+    .code-viewer {
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      word-break: break-all;
+      position: relative;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 3px 8px;
+      font-size: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-sub);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    /* 表格化 Header 列表 */
+    .headers-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      font-family: monospace;
+      margin-bottom: 16px;
+    }
+    .headers-table th, .headers-table td {
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .headers-table th {
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .headers-table td:first-child {
+      color: #818cf8;
+      width: 35%;
+      word-break: break-all;
+    }
+    .headers-table td:last-child {
+      color: #cbd5e1;
+      word-break: break-all;
+    }
+
+    /* ---------------- 规则与 Mock 管理器样式 ---------------- */
+    .rules-container {
+      width: 100%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-width: 920px;
+    }
+
+    .rules-card {
+      background: #151d2d;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .rule-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 12px;
+      background: #0f1624;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      transition: var(--transition);
+      gap: 10px;
+    }
+    .rule-item:hover {
+      border-color: var(--card-border-hover);
+    }
+
+    .rule-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .rule-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .rule-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .rule-badge {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .badge-inject { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+    .badge-mock { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
+
+    .rule-desc {
+      font-size: 11px;
+      color: var(--text-sub);
+      font-family: monospace;
+    }
+
+    /* iOS 风格 Toggle 开关 */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255, 255, 255, 0.15);
+      transition: .3s;
+      border-radius: 22px;
+    }
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .toggle-slider {
+      background-color: #10b981;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    }
+    input:checked + .toggle-slider:before {
+      transform: translateX(18px);
+    }
+
+    /* 表单控件 */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+    .form-input, .form-select, .form-textarea {
+      background: rgba(3, 7, 18, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--text-main);
+      outline: none;
+      transition: var(--transition);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 8px var(--primary-glow);
+    }
+    .form-textarea {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    /* 响应式适配：在极端小屏/分屏下自动改为单列 */
+    @media (max-width: 720px) {
+      .main-container {
+        flex-direction: column;
+      }
+      .traffic-pane {
+        width: 100%;
+        max-width: none;
+        height: 45vh;
+        border-right: none;
+        border-bottom: 1px solid var(--card-border);
+      }
+      .detail-pane {
+        height: 55vh;
+      }
+    }
+    /* ---------------- 发送前劫持控制条 ---------------- */
+    .intercept-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 52px;
+      padding: 8px 18px;
+      background: #0e1420;
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .intercept-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-sub);
+      letter-spacing: 0.2px;
+      padding-right: 8px;
+      border-right: 1px solid var(--card-border);
+    }
+
+    .intercept-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .group-label {
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .seg {
+      display: inline-flex;
+      background: rgba(3, 7, 18, 0.7);
+      border: 1px solid var(--card-border);
+      border-radius: 7px;
+      overflow: hidden;
+    }
+    .seg button {
+      border: none;
+      background: transparent;
+      color: var(--text-sub);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 9px;
+      cursor: pointer;
+    }
+    .seg button.active {
+      background: var(--primary);
+      color: #101322;
+    }
+    .intercept-bar input[type="text"], .intercept-bar input[type="number"] {
+      background: rgba(3, 7, 18, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: var(--text-main);
+      font-size: 12px;
+      padding: 5px 8px;
+      outline: none;
+    }
+    .intercept-bar input[type="text"] { min-width: 200px; max-width: 420px; flex: 1; }
+    .intercept-bar input[type="number"] { width: 56px; }
+    .mini-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-sub);
+      user-select: none;
+      padding: 5px 8px;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.025);
+    }
+    .hold-badge {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.12);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .hold-badge.hot {
+      background: rgba(236, 72, 153, 0.18);
+      color: #f472b6;
+      border-color: rgba(236, 72, 153, 0.4);
+      box-shadow: 0 0 10px rgba(236, 72, 153, 0.25);
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #101724;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .filter-row input, .filter-row select {
+      background: rgba(3, 7, 18, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: var(--text-main);
+      font-size: 12px;
+      height: 32px;
+      padding: 6px 9px;
+      outline: none;
+    }
+    .filter-row input { flex: 1; }
+    .filter-row select { width: 108px; }
+
+    .traffic-item.hold-item {
+      border-color: rgba(236, 72, 153, 0.55);
+      background: rgba(236, 72, 153, 0.12);
+      box-shadow: 0 0 12px rgba(236, 72, 153, 0.15);
+    }
+    .tag-hold {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .inspect-actions, .hold-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .btn-warn {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .btn-pink {
+      background: #c76da9;
+      color: #1c1220;
+      box-shadow: 0 4px 12px rgba(199, 109, 169, 0.18);
+    }
+
+    .hold-editor {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: auto;
+      flex: 1;
+    }
+    .hold-grid {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 8px;
+    }
+    .hold-editor textarea {
+      min-height: 90px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .phase-pill {
+      font-size: 11px;
+      font-weight: 700;
+      color: #f472b6;
+    }
+
+    /* 顶层工作区：在保留原抓包看板的基础上增加 Postman 风格请求面板。 */
+    .workspace-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 46px;
+      padding: 0 18px;
+      background: #0f1522;
+      border-bottom: 1px solid var(--card-border);
+      flex-shrink: 0;
+    }
+    .workspace-tab-btn {
+      height: 46px;
+      padding: 0 16px;
+      color: var(--text-sub);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .workspace-tab-btn:hover { color: var(--text-main); }
+    .workspace-tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    .workspace-tab-panel {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .workspace-tab-panel.active { display: flex; }
+
+    /* 请求工作台：method + URL、可编辑 headers/body、响应结果和抓包回填。 */
+    .request-workbench {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px 18px 18px;
+      overflow: auto;
+      background: var(--bg-surface);
+    }
+    .request-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .request-toolbar .form-select { width: 112px; }
+    .request-toolbar .form-input { flex: 1; min-width: 260px; }
+    .request-status {
+      min-width: 90px;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+    .request-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+      min-height: 0;
+      flex: 1;
+    }
+    .request-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+      padding: 14px;
+      background: #151d2d;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+    }
+    .request-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--text-main);
+      font-weight: 700;
+    }
+    .request-card-head small { color: var(--text-muted); font-weight: 500; }
+    .request-textarea {
+      width: 100%;
+      flex: 1;
+      min-height: 150px;
+      resize: vertical;
+      padding: 10px;
+      color: #e2e8f0;
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .request-response-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      color: var(--text-sub);
+      font-size: 11px;
+    }
+    .request-response-meta strong { color: var(--text-main); }
+    .request-response-body {
+      flex: 1;
+      min-height: 220px;
+      overflow: auto;
+      margin: 0;
+      padding: 12px;
+      color: #e2e8f0;
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      white-space: pre-wrap;
+      word-break: break-word;
+      font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .request-response-headers {
+      max-height: 130px;
+      overflow: auto;
+      margin: 0;
+      padding: 9px 10px;
+      color: #a7b6cb;
+      background: rgba(3, 7, 18, 0.65);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      white-space: pre-wrap;
+      word-break: break-word;
+      font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .request-hint {
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    /* 键盘操作时给输入框和按钮保留清晰但克制的焦点提示。 */
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid rgba(139, 143, 247, 0.75);
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 980px) {
+      .traffic-pane { width: 42%; min-width: 320px; }
+      .request-grid { grid-template-columns: 1fr; }
+      .request-response-body { min-height: 180px; }
+      .intercept-bar {
+        gap: 6px;
+        padding: 7px 12px;
+        row-gap: 6px;
+      }
+      .intercept-group.intercept-match-group {
+        flex: 1 1 180px;
+        min-width: 180px;
+      }
+      .intercept-bar input[type="text"] {
+        min-width: 0;
+        max-width: none;
+      }
+      .mini-check { padding: 4px 6px; }
+      .hold-badge { margin-left: 0; }
+    }
+
+  </style>
+</head>
+<body>
+  <header class="top-header">
+    <div class="brand-section">
+      <div class="brand-logo">⚡</div>
+      <div>
+        <div class="brand-title">
+          包监控
+          <span class="brand-subtitle">Gateway Inspector</span>
+          <span class="status-badge" id="sseBadge">
+            <span class="pulse-dot"></span>
+            <span id="sseStatusText">SSE 实时连通</span>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" id="btnClear" title="清空抓包流水">清空</button>
+      <button class="btn btn-secondary" id="btnTest" title="仅用于打通本机演示链路，不会验证真实站点劫持">模拟请求</button>
+    </div>
+  </header>
+
+  <div class="intercept-bar" id="interceptBar">
+    <span class="intercept-label">发送前劫持</span>
+    <div class="intercept-group">
+      <span class="group-label">模式</span>
+      <div class="seg" id="modeSeg">
+        <button type="button" data-mode="off" class="active">关闭</button>
+        <button type="button" data-mode="match">匹配</button>
+        <button type="button" data-mode="all">全部</button>
+        <button type="button" data-mode="once">只拦一次</button>
+      </div>
+    </div>
+    <div class="intercept-group intercept-match-group">
+      <span class="group-label">匹配</span>
+      <input type="text" id="inputMatchUrlLive" placeholder="输入 URL 片段或正则" />
+    </div>
+    <label class="mini-check"><input type="checkbox" id="chkInterceptResponse" /> 同时拦响应</label>
+    <label class="mini-check"><span>超时</span><input type="number" id="inputTimeout" value="30" min="3" max="120" /><span>s 自动放行</span></label>
+    <span class="hold-badge" id="holdBadge">待放行 0</span>
+  </div>
+
+  <!-- 顶层只增加“抓包 / 请求”两个工作区，不改变原有抓包栏、断点和规则 DOM。 -->
+  <nav class="workspace-tabs" aria-label="工作区">
+    <button class="workspace-tab-btn active" data-workspace-tab="captureWorkspace">抓包</button>
+    <button class="workspace-tab-btn" data-workspace-tab="requestWorkspace">请求</button>
+  </nav>
+
+  <div class="workspace-tab-panel active" id="captureWorkspace">
+  <main class="main-container">
+    <section class="traffic-pane">
+      <div class="pane-header">
+        <strong>实时流量</strong>
+        <span class="traffic-count" id="recordCount">共 0 条</span>
+      </div>
+      <div class="filter-row">
+        <input type="text" id="inputSearch" placeholder="搜索 URL / 方法 / 状态 / 规则" />
+        <select id="selectMethodFilter">
+          <option value="ALL">全部方法</option>
+          <option value="GET">GET</option>
+          <option value="POST">POST</option>
+          <option value="PUT">PUT</option>
+          <option value="PATCH">PATCH</option>
+          <option value="DELETE">DELETE</option>
+        </select>
+      </div>
+      <div class="traffic-list" id="trafficList">
+        <div class="empty-placeholder" id="emptyPlaceholder">
+          <div class="empty-icon">⌁</div>
+          <div class="empty-title">还没有捕获到流量</div>
+          <div class="empty-copy">打开业务页产生请求，或从某条记录开启「下次拦住这条」。发送前劫持默认关闭，不会卡住页面。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="detail-pane">
+      <nav class="nav-tabs">
+        <button class="tab-btn active" id="tabBtnInspect" data-tab="inspectTab">报文审查</button>
+        <button class="tab-btn" id="tabBtnRules" data-tab="rulesTab">规则与 Mock</button>
+      </nav>
+
+      <div class="tab-content active" id="inspectTab">
+        <div id="noSelectPrompt" class="empty-placeholder" style="flex: 1;">
+          <div class="empty-icon">↖</div>
+          <div class="empty-title">选择一条流量开始审查</div>
+          <div class="empty-copy">请求详情、Headers、Body 和重放操作会显示在这里；挂起的请求会自动打开编辑器。</div>
+        </div>
+
+        <div id="holdEditor" class="hold-editor" style="display: none;">
+          <input type="hidden" id="holdId" />
+          <input type="hidden" id="holdIsResponse" />
+          <div class="phase-pill" id="holdPhase">发送前劫持</div>
+          <div class="hold-grid">
+            <div class="form-group">
+              <label class="form-label">方法</label>
+              <select id="holdMethod" class="form-select">
+                <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">URL</label>
+              <input type="text" id="holdUrl" class="form-input" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Request Headers（每行 key: value）</label>
+            <textarea id="holdHeaders" class="form-textarea"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Request Body</label>
+            <textarea id="holdBody" class="form-textarea"></textarea>
+          </div>
+          <div class="hold-grid">
+            <div class="form-group">
+              <label class="form-label">Mock 状态码</label>
+              <input type="number" id="holdMockStatus" class="form-input" value="200" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mock / 响应 Body</label>
+              <textarea id="holdMockBody" class="form-textarea" placeholder='{"ok": true}'></textarea>
+            </div>
+          </div>
+          <div class="hold-actions" style="padding: 0;">
+            <button class="btn btn-pink" id="btnHoldSend">按编辑发送</button>
+            <button class="btn btn-primary" id="btnHoldPass">原样放行</button>
+            <button class="btn btn-warn" id="btnHoldMock">Mock 返回</button>
+            <button class="btn btn-danger" id="btnHoldDrop">丢弃请求</button>
+          </div>
+        </div>
+
+        <div id="detailView" style="display: none; flex: 1; flex-direction: column; overflow: hidden;">
+          <!-- 中文说明：报文审查同时承担劫持编辑器，改完后点「修改后发送」。 -->
+          <input type="hidden" id="inspectHoldId" />
+          <input type="hidden" id="inspectHoldPhase" />
+          <div class="inspect-meta-bar">
+            <div class="inspect-meta-item">
+              <span>方法:</span>
+              <select id="metaMethod" class="form-select inspect-meta-control" aria-label="请求方法">
+                <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option>
+              </select>
+            </div>
+            <div class="inspect-meta-item">
+              <span>状态:</span>
+              <input id="metaStatus" class="form-input inspect-meta-control" aria-label="响应状态码" />
+            </div>
+            <div class="inspect-meta-item"><span>耗时:</span><strong id="metaDuration">0ms</strong></div>
+            <div class="inspect-meta-item"><span>时间:</span><strong id="metaTime">--</strong></div>
+            <div class="inspect-meta-item"><span>策略:</span><strong id="metaRule" style="color: #a855f7;">--</strong></div>
+            <div class="inspect-meta-item inspect-meta-url"><span>目标:</span><input id="metaTarget" class="form-input" aria-label="请求 URL" /></div>
+          </div>
+          <div class="inspect-actions">
+            <button class="btn btn-pink" id="btnInspectSend" title="改完字段后发给原页面：挂起中直接回写；已完成的记录会刷新页面并带上改后数据">修改后发送</button>
+            <button class="btn btn-primary" id="btnHoldPassInspect">原样放行</button>
+            <button class="btn btn-warn" id="btnHoldMockInspect">Mock 返回</button>
+            <button class="btn btn-danger" id="btnHoldDropInspect">丢弃请求</button>
+            <button class="btn btn-primary" id="btnReplay">重放原请求</button>
+            <button class="btn btn-secondary" id="btnCopyCurl">复制 curl</button>
+            <button class="btn btn-secondary" id="btnMakeRule">转为 Mock 规则</button>
+            <button class="btn btn-pink" id="btnHoldNext">下次拦住这条</button>
+          </div>
+          <p class="inspect-hint hot" id="inspectSendHint">改某个字段后点「修改后发送」，原页面会刷新并显示对应数据。</p>
+          <div class="sub-tabs">
+            <button class="sub-tab-btn active" data-sub="subHeaders">Headers</button>
+            <button class="sub-tab-btn" data-sub="subReqBody">Request Body</button>
+            <button class="sub-tab-btn" data-sub="subResBody">Response Body</button>
+          </div>
+          <div class="sub-content active" id="subHeaders">
+            <p class="inspect-hint" id="headersHint">Key / Value 分行改，空 Key 不会发出去。</p>
+            <div class="kv-block">
+              <div class="kv-title">Request Headers</div>
+              <div class="kv-rows" id="reqHeaderRows"></div>
+              <button type="button" class="btn btn-secondary" id="btnAddReqHeader">添加请求头</button>
+            </div>
+            <div class="kv-block">
+              <div class="kv-title">Response Headers</div>
+              <div class="kv-rows" id="resHeaderRows"></div>
+              <button type="button" class="btn btn-secondary" id="btnAddResHeader">添加响应头</button>
+            </div>
+            <textarea id="reqHeadersEditor" class="sync-textarea" spellcheck="false"></textarea>
+            <textarea id="resHeadersEditor" class="sync-textarea" spellcheck="false"></textarea>
+            <table class="headers-table" id="reqHeadersTable" style="display:none"></table>
+            <table class="headers-table" id="resHeadersTable" style="display:none"></table>
+          </div>
+          <div class="sub-content" id="subReqBody">
+            <div class="json-workbench" data-json-pane="req">
+              <div class="json-toolbar">
+                <div class="seg json-mode-seg">
+                  <button type="button" data-json-mode="tree" class="active">树形</button>
+                  <button type="button" data-json-mode="edit">高亮</button>
+                </div>
+                <button type="button" class="btn btn-secondary" data-json-act="format">格式化</button>
+                <button type="button" class="btn btn-secondary" data-json-act="minify">压缩</button>
+                <span class="json-status muted" data-json-status>等待报文</span>
+                <button type="button" class="btn btn-secondary" id="btnCopyReq">复制</button>
+              </div>
+              <p class="inspect-hint" id="reqBodyHint">发送前劫持时改树节点或高亮文本，再点「修改后发送」。</p>
+              <div class="json-tree" data-json-tree></div>
+              <div class="json-edit-wrap" data-json-edit hidden>
+                <div class="json-stack">
+                  <div class="json-highlight" data-json-highlight></div>
+                  <textarea id="reqBodyEditor" class="json-input" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder='{"hello":"world"}'></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="sub-content" id="subResBody">
+            <div class="json-workbench" data-json-pane="res">
+              <div class="json-toolbar">
+                <div class="seg json-mode-seg">
+                  <button type="button" data-json-mode="tree" class="active">树形</button>
+                  <button type="button" data-json-mode="edit">高亮</button>
+                </div>
+                <button type="button" class="btn btn-secondary" data-json-act="format">格式化</button>
+                <button type="button" class="btn btn-secondary" data-json-act="minify">压缩</button>
+                <span class="json-status muted" data-json-status>等待报文</span>
+                <button type="button" class="btn btn-secondary" id="btnCopyRes">复制</button>
+              </div>
+              <p class="inspect-hint hot" id="resBodyHint">改 Response Body 里的字段，再点「修改后发送」，原页面会刷新成这份数据。</p>
+              <div class="json-tree" data-json-tree></div>
+              <div class="json-edit-wrap" data-json-edit hidden>
+                <div class="json-stack">
+                  <div class="json-highlight" data-json-highlight></div>
+                  <textarea id="resBodyEditor" class="json-input" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder='{"ok":true}'></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="rulesTab">
+        <div class="rules-container">
+          <div class="rules-card">
+            <strong>动态拦截与 Mock 规则</strong>
+            <div id="rulesList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+          <div class="rules-card">
+            <strong>+ 新增规则</strong>
+            <form id="formAddRule" style="display: flex; flex-direction: column; gap: 10px;">
+              <div class="form-group">
+                <label class="form-label">规则名称</label>
+                <input type="text" id="inputRuleName" class="form-input" placeholder="例如: Mock 设备状态" required />
+              </div>
+              <div style="display:flex; gap: 10px;">
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label">规则类型</label>
+                  <select id="selectRuleType" class="form-select">
+                    <option value="mock_response">Mock 短路响应</option>
+                    <option value="inject_header">Header 注入</option>
+                    <option value="tamper_body">改写请求 Body</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 2;">
+                  <label class="form-label">URL 匹配（包含或正则，不要前置空格）</label>
+                  <input type="text" id="inputMatchUrl" class="form-input" placeholder="例如: /h5/dts/devices" required />
+                </div>
+              </div>
+              <div id="mockFields" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="form-group">
+                  <label class="form-label">Mock HTTP 状态码</label>
+                  <input type="number" id="inputMockStatus" class="form-input" value="200" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Mock Response Body</label>
+                  <textarea id="inputMockBody" class="form-textarea" placeholder='{"success": true}'></textarea>
+                </div>
+              </div>
+              <div id="headerFields" style="display: none; gap: 10px;">
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label">Header Key</label>
+                  <input type="text" id="inputHeaderKey" class="form-input" placeholder="x-custom-token" />
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label">Header Value</label>
+                  <input type="text" id="inputHeaderValue" class="form-input" placeholder="custom_secret_value" />
+                </div>
+              </div>
+              <div id="bodyFields" style="display: none; flex-direction: column; gap: 10px;">
+                <div class="form-group">
+                  <label class="form-label">新的 Request Body</label>
+                  <textarea id="inputTamperBody" class="form-textarea" placeholder='{"patched": true}'></textarea>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary" style="margin-top: 4px; justify-content: center;">保存并热载入规则</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  </div>
+
+  <section class="workspace-tab-panel" id="requestWorkspace">
+    <div class="request-workbench">
+      <div class="request-toolbar">
+        <select id="requestMethod" class="form-select" aria-label="请求方法">
+          <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option>
+        </select>
+        <input id="requestUrl" class="form-input" type="url" placeholder="https://example.com/api/users" aria-label="请求 URL" />
+        <button class="btn btn-primary" id="btnSendRequest">发送</button>
+        <button class="btn btn-secondary" id="btnLoadCapture">载入当前抓包</button>
+        <button class="btn btn-secondary" id="btnClearRequest">清空编辑器</button>
+        <span class="request-status" id="requestStatus">等待发送</span>
+      </div>
+      <div class="request-grid">
+        <div class="request-card">
+          <div class="request-card-head"><span>请求编辑器</span><small>每行一个 Header：key: value</small></div>
+          <label class="form-label" for="requestHeaders">Headers</label>
+          <textarea id="requestHeaders" class="request-textarea" spellcheck="false" placeholder="content-type: application/json\nauthorization: Bearer …"></textarea>
+          <label class="form-label" for="requestBody">Body</label>
+          <textarea id="requestBody" class="request-textarea" spellcheck="false" placeholder='{"hello":"world"}'></textarea>
+          <div class="request-hint">请求由 8910 网关直发，结果会回流到“抓包”列表和 SSE。相对路径会按抓包页面自动补全域名。</div>
+        </div>
+        <div class="request-card">
+          <div class="request-card-head"><span>响应</span><button class="btn btn-secondary" id="btnCopyRequestResponse">复制响应</button></div>
+          <div class="request-response-meta">
+            <span>状态 <strong id="requestResponseStatus">--</strong></span>
+            <span>耗时 <strong id="requestResponseDuration">--</strong></span>
+            <span>记录 <strong id="requestResponseRecord">--</strong></span>
+          </div>
+          <label class="form-label" for="requestResponseHeaders">Response Headers</label>
+          <pre class="request-response-headers" id="requestResponseHeaders">--</pre>
+          <label class="form-label" for="requestResponseBody">Response Body</label>
+          <pre class="request-response-body" id="requestResponseBody">发送请求后，响应正文会显示在这里。</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // ========================================================
+    // 包监控看板前端：流量、发送前/响应前断点、规则、重放
+    // ========================================================
+    let recordsData = [];
+    let holdsData = [];
+    let rulesData = [];
+    let currentSelectedId = null;
+    let interceptConfig = { mode: 'off', matchUrl: '', timeoutMs: 30000, interceptResponse: false, once: false, onceStage: '' };
+    let lastPageUrl = '';
+    let filterText = '';
+    let filterMethod = 'ALL';
+    let pendingPageApplyId = '';
+    let pendingPageApplyTimer = 0;
+
+    const trafficList = document.getElementById('trafficList');
+    const emptyPlaceholder = document.getElementById('emptyPlaceholder');
+    const recordCount = document.getElementById('recordCount');
+    const sseBadge = document.getElementById('sseBadge');
+    const sseStatusText = document.getElementById('sseStatusText');
+    const btnClear = document.getElementById('btnClear');
+    const btnTest = document.getElementById('btnTest');
+    const noSelectPrompt = document.getElementById('noSelectPrompt');
+    const detailView = document.getElementById('detailView');
+    const holdEditor = document.getElementById('holdEditor');
+    const holdBadge = document.getElementById('holdBadge');
+    const requestMethod = document.getElementById('requestMethod');
+    const requestUrl = document.getElementById('requestUrl');
+    const requestHeaders = document.getElementById('requestHeaders');
+    const requestBody = document.getElementById('requestBody');
+    const requestStatus = document.getElementById('requestStatus');
+    const requestResponseStatus = document.getElementById('requestResponseStatus');
+    const requestResponseDuration = document.getElementById('requestResponseDuration');
+    const requestResponseRecord = document.getElementById('requestResponseRecord');
+    const requestResponseHeaders = document.getElementById('requestResponseHeaders');
+    const requestResponseBody = document.getElementById('requestResponseBody');
+
+    function escapeHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function prettyJson(text) {
+      if (text == null || text === '') return '--';
+      try { return JSON.stringify(JSON.parse(text), null, 2); } catch (e) { return String(text); }
+    }
+
+    // 中文说明：编辑器里空报文保持空白，不要写成占位符 '--'。
+    function prettyJsonForEditor(text) {
+      if (text == null || text === '') return '';
+      try { return JSON.stringify(JSON.parse(text), null, 2); } catch (e) { return String(text); }
+    }
+
+    function tryParseJson(text) {
+      const raw = String(text == null ? '' : text).trim();
+      if (!raw) return { ok: false, empty: true };
+      try { return { ok: true, value: JSON.parse(raw) }; }
+      catch (e) { return { ok: false, error: e.message || 'parse error' }; }
+    }
+
+    // 中文说明：按 JSON 词法上色，非法报文也尽量标出字符串和数字。
+    function highlightJson(text) {
+      const src = String(text || '');
+      let i = 0;
+      let out = '';
+      function isWs(ch) { return ch === ' ' || ch === '\n' || ch === '\r' || ch === '\t'; }
+      while (i < src.length) {
+        const c = src[i];
+        if (c === '"') {
+          let j = i + 1;
+          while (j < src.length) {
+            if (src[j] === '\\') { j += 2; continue; }
+            if (src[j] === '"') { j += 1; break; }
+            j += 1;
+          }
+          const raw = src.slice(i, j);
+          i = j;
+          let k = i;
+          while (k < src.length && isWs(src[k])) k += 1;
+          const cls = src[k] === ':' ? 'jk' : 'js';
+          out += '<span class="' + cls + '">' + escapeHtml(raw) + '</span>';
+          continue;
+        }
+        if (c === '-' || (c >= '0' && c <= '9')) {
+          const s = i;
+          i += 1;
+          while (i < src.length && /[0-9eE+\-.]/.test(src[i])) i += 1;
+          out += '<span class="jn">' + escapeHtml(src.slice(s, i)) + '</span>';
+          continue;
+        }
+        if (src.startsWith('false', i) || src.startsWith('true', i) || src.startsWith('null', i)) {
+          const w = src.startsWith('false', i) ? 'false' : (src.startsWith('true', i) ? 'true' : 'null');
+          i += w.length;
+          out += '<span class="jb">' + w + '</span>';
+          continue;
+        }
+        out += escapeHtml(c);
+        i += 1;
+      }
+      // 中文说明：如果文本以换行符结尾，在末尾追加一个换行符，防止浏览器在 pre 容器中吞掉末尾换行导致高度比 textarea 少一行发生垂直错位
+      if (src.endsWith('\n')) {
+        out += '\n';
+      }
+      return out;
+    }
+
+    function jsonTypeLabel(value) {
+      if (value === null) return 'null';
+      if (Array.isArray(value)) return 'Array(' + value.length + ')';
+      if (typeof value === 'object') return 'Object(' + Object.keys(value).length + ')';
+      return typeof value;
+    }
+
+    function unwrapJsonString(value) {
+      if (typeof value !== 'string') return null;
+      const parsed = tryParseJson(value);
+      if (parsed.ok && parsed.value !== null && typeof parsed.value === 'object') return parsed.value;
+      return null;
+    }
+
+    function setPathMaybeWrapped(root, keys, val) {
+      if (!keys.length) return val;
+      const last = keys[keys.length - 1];
+      let cur = root;
+      for (let i = 0; i < keys.length - 1; i += 1) {
+        const k = keys[i];
+        const inner = unwrapJsonString(cur[k]);
+        if (inner) {
+          setPathMaybeWrapped(inner, keys.slice(i + 1), val);
+          cur[k] = JSON.stringify(inner);
+          return root;
+        }
+        if (cur[k] == null || typeof cur[k] !== 'object') cur[k] = {};
+        cur = cur[k];
+      }
+      const wrapped = unwrapJsonString(cur[last]);
+      cur[last] = (wrapped && val !== null && typeof val === 'object') ? JSON.stringify(val) : val;
+      return root;
+    }
+
+    // 中文说明：把 JSON 画成可折叠树，嵌套在字符串里的 JSON 也会展开。
+    function renderJsonTree(value, path, depth) {
+      const p = path || [];
+      const d = depth || 0;
+      const nested = unwrapJsonString(value);
+      if (nested) {
+        const isArr = Array.isArray(nested);
+        const keys = isArr ? nested.map(function (_, idx) { return idx; }) : Object.keys(nested);
+        let html = '<div class="json-node">';
+        html += '<div class="json-row">';
+        html += '<button type="button" class="json-toggle" data-json-toggle>▾</button>';
+        if (p.length) html += '<span class="jk">' + escapeHtml(String(p[p.length - 1])) + '</span><span class="jp">:</span>';
+        html += '<span class="jm">JSON ' + (isArr ? '[' + keys.length + ']' : '{' + keys.length + '}') + '</span>';
+        html += '</div><div class="json-kids">';
+        const limit = Math.min(keys.length, 80);
+        for (let i = 0; i < limit; i += 1) html += renderJsonTree(nested[keys[i]], p.concat([keys[i]]), d + 1);
+        if (keys.length > limit) html += '<div class="json-more">还有 ' + (keys.length - limit) + ' 项，切到高亮看全文</div>';
+        html += '</div></div>';
+        return html;
+      }
+      if (value !== null && typeof value === 'object') {
+        const isArr = Array.isArray(value);
+        const keys = isArr ? value.map(function (_, idx) { return idx; }) : Object.keys(value);
+        const isPrim = function (v) { return v === null || typeof v !== 'object'; };
+        if (isArr && keys.length <= 12 && value.every(isPrim)) {
+          const items = value.map(function (v) {
+            const type = v === null ? 'null' : typeof v;
+            const cls = type === 'string' ? 'js' : (type === 'number' ? 'jn' : 'jb');
+            const shown = type === 'string' ? JSON.stringify(v) : String(v);
+            return '<span class="' + cls + '">' + escapeHtml(shown) + '</span>';
+          }).join('<span class="jp">, </span>');
+          const label = p.length ? '<span class="jk">' + escapeHtml(String(p[p.length - 1])) + '</span><span class="jp">:</span>' : '';
+          return '<div class="json-row json-leaf">' + label + '<span class="jp">[</span>' + items + '<span class="jp">]</span></div>';
+        }
+        const open = d < 2 || keys.length <= 6 || (isArr && keys.length === 1);
+        let html = '<div class="json-node' + (open ? '' : ' collapsed') + '">';
+        html += '<div class="json-row">';
+        html += '<button type="button" class="json-toggle" data-json-toggle>' + (open ? '▾' : '▸') + '</button>';
+        if (p.length) html += '<span class="jk">' + escapeHtml(String(p[p.length - 1])) + '</span><span class="jp">:</span>';
+        html += '<span class="jm">' + (isArr ? '[' + keys.length + ']' : '{' + keys.length + '}') + '</span>';
+        html += '</div><div class="json-kids">';
+        const limit = Math.min(keys.length, 80);
+        for (let i = 0; i < limit; i += 1) {
+          html += renderJsonTree(value[keys[i]], p.concat([keys[i]]), d + 1);
+        }
+        if (keys.length > limit) html += '<div class="json-more">还有 ' + (keys.length - limit) + ' 项，切到高亮看全文</div>';
+        html += '</div></div>';
+        return html;
+      }
+      const type = value === null ? 'null' : typeof value;
+      const cls = type === 'string' ? 'js' : (type === 'number' ? 'jn' : 'jb');
+      const shown = type === 'string' ? JSON.stringify(value) : String(value);
+      const label = p.length ? '<span class="jk">' + escapeHtml(String(p[p.length - 1])) + '</span><span class="jp">:</span>' : '';
+      return '<div class="json-row json-leaf">' + label +
+        '<button type="button" class="' + cls + ' json-val" data-json-path="' + escapeHtml(JSON.stringify(p)) + '">' +
+        escapeHtml(shown) + '</button></div>';
+    }
+
+    function paneEls(pane) {
+      return {
+        pane: pane,
+        tree: pane.querySelector('[data-json-tree]'),
+        edit: pane.querySelector('[data-json-edit]'),
+        highlight: pane.querySelector('[data-json-highlight]'),
+        input: pane.querySelector('textarea.json-input'),
+        status: pane.querySelector('[data-json-status]')
+      };
+    }
+
+    function setJsonMode(pane, mode) {
+      pane.dataset.mode = mode;
+      pane.querySelectorAll('[data-json-mode]').forEach(function (btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-json-mode') === mode);
+      });
+      const els = paneEls(pane);
+      const tree = mode === 'tree';
+      els.tree.hidden = !tree;
+      els.edit.hidden = tree;
+      if (!tree) {
+        requestAnimationFrame(function () { syncJsonEditorSize(els); });
+      }
+    }
+
+    // 中文说明：让 textarea 撑满内容高度与宽度，高亮层跟它同一套盒子，光标才不会偏。
+    function syncJsonEditorSize(els) {
+      if (!els.edit || els.edit.hidden || !els.input) return;
+      const input = els.input;
+      const prevMin = input.style.minHeight;
+      input.style.minHeight = '0px';
+      input.style.height = 'auto';
+      input.style.width = 'auto';
+      const contentH = input.scrollHeight;
+      const contentW = input.scrollWidth;
+      input.style.minHeight = prevMin;
+      input.style.height = Math.max(contentH, els.edit.clientHeight - 24) + 'px';
+      // 中文说明：计算内容宽度与容器宽度最大值，防止超长单行发生图层宽度截断错位
+      const targetW = Math.max(contentW, els.edit.clientWidth - 28);
+      input.style.width = targetW + 'px';
+      const hi = els.highlight;
+      if (hi) {
+        hi.style.top = input.offsetTop + 'px';
+        hi.style.left = input.offsetLeft + 'px';
+        hi.style.width = input.style.width;
+        hi.style.height = input.style.height;
+      }
+    }
+
+    function refreshJsonPane(pane) {
+      const els = paneEls(pane);
+      const raw = els.input.value;
+      els.highlight.innerHTML = highlightJson(raw);
+      const parsed = tryParseJson(raw);
+      els.status.classList.remove('bad', 'muted');
+      if (parsed.empty) {
+        els.status.textContent = '空报文';
+        els.status.classList.add('muted');
+        els.tree.innerHTML = '<div class="json-more">没有 Body</div>';
+        setJsonMode(pane, 'edit');
+        syncJsonEditorSize(els);
+        return;
+      }
+      if (!parsed.ok) {
+        els.status.textContent = '不是合法 JSON';
+        els.status.classList.add('bad');
+        els.tree.innerHTML = '<div class="json-more">解析失败，请用高亮模式改原文</div>';
+        if (pane.dataset.mode === 'tree') setJsonMode(pane, 'edit');
+        syncJsonEditorSize(els);
+        return;
+      }
+      els.status.textContent = 'JSON · ' + jsonTypeLabel(parsed.value);
+      els.tree.innerHTML = renderJsonTree(parsed.value, [], 0);
+      const complex = parsed.value !== null && typeof parsed.value === 'object';
+      if (!pane.dataset.userMode) setJsonMode(pane, complex ? 'tree' : 'edit');
+      syncJsonEditorSize(els);
+    }
+
+    function setJsonPaneText(pane, text, userMode) {
+      const els = paneEls(pane);
+      els.input.value = prettyJsonForEditor(text);
+      if (userMode) pane.dataset.userMode = userMode;
+      else delete pane.dataset.userMode;
+      refreshJsonPane(pane);
+    }
+
+    function commitJsonPath(textarea, path, rawValue) {
+      const parsed = tryParseJson(textarea.value);
+      if (!parsed.ok) return false;
+      let nextVal;
+      try { nextVal = JSON.parse(rawValue); }
+      catch (e) { nextVal = rawValue; }
+      const nextRoot = setPathMaybeWrapped(parsed.value, path, nextVal);
+      textarea.value = JSON.stringify(nextRoot, null, 2);
+      return true;
+    }
+
+    function bindJsonPane(pane) {
+      const els = paneEls(pane);
+      els.input.addEventListener('input', function () {
+        pane.dataset.userMode = pane.dataset.mode || 'edit';
+        refreshJsonPane(pane);
+      });
+      els.input.addEventListener('keydown', function (e) {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          const start = els.input.selectionStart;
+          const end = els.input.selectionEnd;
+          els.input.value = els.input.value.slice(0, start) + '  ' + els.input.value.slice(end);
+          els.input.selectionStart = els.input.selectionEnd = start + 2;
+          refreshJsonPane(pane);
+        }
+      });
+      pane.addEventListener('click', function (e) {
+        const modeBtn = e.target.closest('[data-json-mode]');
+        if (modeBtn) {
+          pane.dataset.userMode = modeBtn.getAttribute('data-json-mode');
+          setJsonMode(pane, pane.dataset.userMode);
+          if (pane.dataset.userMode === 'edit') refreshJsonPane(pane);
+          return;
+        }
+        const act = e.target.closest('[data-json-act]');
+        if (act) {
+          const parsed = tryParseJson(els.input.value);
+          if (!parsed.ok) return;
+          els.input.value = act.getAttribute('data-json-act') === 'minify'
+            ? JSON.stringify(parsed.value)
+            : JSON.stringify(parsed.value, null, 2);
+          pane.dataset.userMode = pane.dataset.mode || 'edit';
+          refreshJsonPane(pane);
+          return;
+        }
+        const toggle = e.target.closest('[data-json-toggle]');
+        if (toggle) {
+          const node = toggle.closest('.json-node');
+          node.classList.toggle('collapsed');
+          toggle.textContent = node.classList.contains('collapsed') ? '▸' : '▾';
+          return;
+        }
+        const leaf = e.target.closest('[data-json-path]');
+        if (!leaf) return;
+        const input = document.createElement('input');
+        input.className = 'json-leaf-input';
+        input.value = leaf.textContent;
+        leaf.replaceWith(input);
+        input.focus();
+        input.select();
+        let done = false;
+        function finish(ok) {
+          if (done) return;
+          done = true;
+          if (ok) commitJsonPath(els.input, JSON.parse(leaf.getAttribute('data-json-path')), input.value);
+          refreshJsonPane(pane);
+        }
+        input.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
+          if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+        });
+        input.addEventListener('blur', function () { finish(true); });
+      });
+    }
+
+    function kvRow(key, value) {
+      const row = document.createElement('div');
+      row.className = 'kv-row';
+      row.innerHTML = '<input class="kv-key" spellcheck="false" /><input class="kv-val" spellcheck="false" /><button type="button" class="kv-del" aria-label="删除">×</button>';
+      row.querySelector('.kv-key').value = key || '';
+      row.querySelector('.kv-val').value = value || '';
+      return row;
+    }
+
+    function syncHeaderText(prefix) {
+      const rows = document.getElementById(prefix + 'HeaderRows');
+      const hidden = document.getElementById(prefix + 'HeadersEditor');
+      const lines = [];
+      rows.querySelectorAll('.kv-row').forEach(function (row) {
+        const k = row.querySelector('.kv-key').value.trim();
+        const v = row.querySelector('.kv-val').value;
+        if (k) lines.push(k + ': ' + v);
+      });
+      hidden.value = lines.join('\n');
+    }
+
+    function fillHeaderKv(prefix, headers) {
+      const rows = document.getElementById(prefix + 'HeaderRows');
+      const obj = headers || {};
+      const keys = Object.keys(obj);
+      rows.innerHTML = '';
+      if (!keys.length) rows.appendChild(kvRow('', ''));
+      keys.forEach(function (k) { rows.appendChild(kvRow(k, obj[k])); });
+      syncHeaderText(prefix);
+    }
+
+    function bindHeaderKv(prefix) {
+      const rows = document.getElementById(prefix + 'HeaderRows');
+      rows.addEventListener('input', function () { syncHeaderText(prefix); });
+      rows.addEventListener('click', function (e) {
+        const del = e.target.closest('.kv-del');
+        if (!del) return;
+        const row = del.closest('.kv-row');
+        if (rows.querySelectorAll('.kv-row').length === 1) {
+          row.querySelector('.kv-key').value = '';
+          row.querySelector('.kv-val').value = '';
+        } else {
+          row.remove();
+        }
+        syncHeaderText(prefix);
+      });
+    }
+
+    function switchSubTab(subId) {
+      document.querySelectorAll('.sub-tab-btn').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.sub === subId);
+      });
+      document.querySelectorAll('.sub-content').forEach(function (c) {
+        c.classList.toggle('active', c.id === subId);
+      });
+    }
+
+    function setInspectHoldMode(isHold, phase) {
+      const holding = Boolean(isHold);
+      document.getElementById('btnHoldPassInspect').style.display = holding ? '' : 'none';
+      document.getElementById('btnHoldMockInspect').style.display = holding ? '' : 'none';
+      document.getElementById('btnHoldDropInspect').style.display = holding ? '' : 'none';
+      document.getElementById('btnReplay').style.display = holding ? 'none' : '';
+      document.getElementById('btnHoldNext').style.display = holding ? 'none' : '';
+      document.getElementById('btnInspectSend').textContent = '修改后发送';
+      document.getElementById('btnInspectSend').title = holding
+        ? '把当前编辑后的报文交还给业务页面'
+        : '改字段后发给原页面，页面会刷新并显示对应数据';
+      const hint = document.getElementById('resBodyHint');
+      const sendHint = document.getElementById('inspectSendHint');
+      if (phase === 'response') {
+        hint.textContent = '这条响应正挂着。改字段后点「修改后发送」，页面会马上用上。';
+        sendHint.textContent = '请求还在页面里等着。改完直接发，不用刷新。';
+      } else if (holding) {
+        hint.textContent = '这条还在发送前。先改 Request Body / Headers 再发送；如果要改响应，勾上「同时拦响应」。';
+        sendHint.textContent = '请求还在页面里等着。改完点「修改后发送」就会继续。';
+      } else {
+        hint.textContent = '改某个字段，再点「修改后发送」。原页面会自动刷新，并用这份数据重新渲染。';
+        sendHint.textContent = '改某个字段后点「修改后发送」，原页面会刷新并显示对应数据。';
+      }
+    }
+
+    function escapeRegex(s) {
+      return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function headersToText(headers) {
+      const obj = headers || {};
+      return Object.keys(obj).map(function (k) { return k + ': ' + obj[k]; }).join('\n');
+    }
+
+    function textToHeaders(text) {
+      const result = {};
+      String(text || '').split('\n').forEach(function (line) {
+        const idx = line.indexOf(':');
+        if (idx > 0) result[line.slice(0, idx).trim().toLowerCase()] = line.slice(idx + 1).trim();
+      });
+      return result;
+    }
+
+    // 中文说明：从当前记录、同源抓包或 Header 里找回页面 origin，把 /h5/... 补成 http(s) 绝对地址。
+    function inferPageBase(item) {
+      const headers = (item && (item.requestHeaders || item.headers)) || {};
+      const candidates = [
+        lastPageUrl,
+        item && item.pageUrl,
+        headers.origin, headers.referer, headers.referrer
+      ];
+      (recordsData || []).forEach(function (rec) {
+        if (!rec) return;
+        candidates.push(rec.pageUrl, rec.targetUrl, rec.url);
+      });
+      (holdsData || []).forEach(function (hold) {
+        if (hold) candidates.push(hold.pageUrl, hold.url);
+      });
+      for (let i = 0; i < candidates.length; i++) {
+        const value = candidates[i];
+        if (!value) continue;
+        try {
+          const parsed = new URL(value);
+          if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.origin;
+        } catch (e) {}
+      }
+      return '';
+    }
+
+    function resolveAbsoluteUrl(url, item) {
+      const raw = String(url || '').trim();
+      if (!raw) return '';
+      try {
+        const parsed = new URL(raw);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
+      } catch (e) {}
+      const base = inferPageBase(item);
+      if (!base) return raw;
+      try {
+        const parsed = new URL(raw, base);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
+      } catch (e) {}
+      return raw;
+    }
+
+    function isAbsoluteHttpUrl(url) {
+      try {
+        const parsed = new URL(String(url || ''));
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch (e) { return false; }
+    }
+
+    function toCurl(rec) {
+      const url = rec.url || rec.targetUrl || '';
+      let cmd = "curl -X " + (rec.method || 'GET') + " '" + String(url).replace(/'/g, "'\\''") + "'";
+      const headers = rec.requestHeaders || rec.headers || {};
+      Object.keys(headers).forEach(function (k) {
+        if (['host', 'content-length', 'connection'].indexOf(k.toLowerCase()) >= 0) return;
+        cmd += " \\\n  -H '" + k + ': ' + String(headers[k]).replace(/'/g, "'\\''") + "'";
+      });
+      const body = rec.requestBody || rec.body || '';
+      if (body && ['GET', 'HEAD'].indexOf(rec.method) < 0) {
+        cmd += " \\\n  --data-raw '" + String(body).replace(/'/g, "'\\''") + "'";
+      }
+      return cmd;
+    }
+
+    function initSSE() {
+      const eventSource = new EventSource('/__events');
+      eventSource.onopen = function () {
+        sseBadge.style.background = 'rgba(16, 185, 129, 0.12)';
+        sseStatusText.textContent = 'SSE 实时连通';
+      };
+      eventSource.onmessage = function (event) {
+        try { handleSSEEvent(JSON.parse(event.data)); } catch (e) { console.error(e); }
+      };
+      eventSource.onerror = function () {
+        sseBadge.style.background = 'rgba(239, 68, 68, 0.12)';
+        sseStatusText.textContent = 'SSE 已断开，重连中';
+      };
+    }
+
+    function handleSSEEvent(payload) {
+      const type = payload.type;
+      const data = payload.data;
+      if (type === 'init') {
+        recordsData = data.records || [];
+        rulesData = data.rules || [];
+        if (data.config) interceptConfig = Object.assign(interceptConfig, data.config);
+        if (data.lastPageUrl) lastPageUrl = data.lastPageUrl;
+        holdsData = data.holds || [];
+        renderInterceptBar();
+        renderTrafficList();
+        renderRules();
+        if (holdsData[0]) selectItem(holdsData[0].id, true);
+      } else if (type === 'new_record') {
+        recordsData.unshift(data);
+        if (recordsData.length > 200) recordsData.pop();
+        renderTrafficList();
+        if (data && String(data.appliedRule || '').indexOf('已回写页面') >= 0) {
+          pendingPageApplyId = '';
+          if (pendingPageApplyTimer) window.clearTimeout(pendingPageApplyTimer);
+          setApplyHint('原页面已经用上你改过的数据。');
+        }
+      } else if (type === 'clear') {
+        recordsData = [];
+        currentSelectedId = null;
+        renderTrafficList();
+        showEmptyDetail();
+      } else if (type === 'rules_updated') {
+        rulesData = data || [];
+        renderRules();
+      } else if (type === 'hold_created') {
+        holdsData = holdsData.filter(function (h) { return h.id !== data.id; });
+        holdsData.unshift(data);
+        renderInterceptBar();
+        renderTrafficList();
+        selectItem(data.id, true);
+        switchMainTab('inspectTab');
+      } else if (type === 'hold_resolved') {
+        holdsData = holdsData.filter(function (h) { return h.id !== data.id; });
+        renderInterceptBar();
+        renderTrafficList();
+        if (currentSelectedId === data.id) showEmptyDetail();
+      } else if (type === 'intercept_config') {
+        interceptConfig = Object.assign(interceptConfig, data || {});
+        renderInterceptBar();
+      } else if (type === 'page_apply') {
+        const apply = data || {};
+        if (apply.id && apply.id === pendingPageApplyId) {
+          if (apply.stage === 'reloaded') setApplyHint('页面已刷新，正在用改后数据重新请求…');
+          if (apply.stage === 'applied') {
+            pendingPageApplyId = '';
+            if (pendingPageApplyTimer) window.clearTimeout(pendingPageApplyTimer);
+            setApplyHint('原页面已经用上你改过的数据。');
+          }
+        }
+      }
+    }
+
+    function renderInterceptBar() {
+      document.querySelectorAll('#modeSeg button').forEach(function (btn) {
+        btn.classList.toggle('active', btn.dataset.mode === interceptConfig.mode);
+      });
+      document.getElementById('inputMatchUrlLive').value = interceptConfig.matchUrl || '';
+      document.getElementById('chkInterceptResponse').checked = Boolean(interceptConfig.interceptResponse);
+      document.getElementById('inputTimeout').value = Math.round((interceptConfig.timeoutMs || 30000) / 1000);
+      const n = holdsData.length;
+      holdBadge.textContent = '待放行 ' + n;
+      holdBadge.classList.toggle('hot', n > 0);
+    }
+
+    async function saveInterceptConfig(patch) {
+      const next = Object.assign({}, interceptConfig, patch || {});
+      await fetch('/__api/intercept/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(next)
+      });
+    }
+
+    function combinedList() {
+      const holds = holdsData.map(function (h) {
+        return {
+          id: h.id, isHold: true, phase: h.phase, method: h.method, url: h.url,
+          status: h.phase === 'response' ? (h.status || 'HOLD') : 'HOLD',
+          duration: 0, timestamp: '挂起中', appliedRule: h.phase === 'response' ? '响应前劫持' : '发送前劫持',
+          requestHeaders: h.headers, requestBody: h.body, responseHeaders: h.responseHeaders,
+          responseBody: h.responseBody, isMock: false, isModified: true
+        };
+      });
+      return holds.concat(recordsData);
+    }
+
+    function matchesFilter(item) {
+      if (filterMethod !== 'ALL' && String(item.method).toUpperCase() !== filterMethod) return false;
+      if (!filterText) return true;
+      const q = filterText.toLowerCase();
+      return [item.url, item.method, item.status, item.appliedRule, item.requestBody, item.responseBody]
+        .join(' ').toLowerCase().indexOf(q) >= 0;
+    }
+
+    function renderTrafficList() {
+      const list = combinedList().filter(matchesFilter);
+      recordCount.textContent = '共 ' + recordsData.length + ' 条' + (holdsData.length ? ' · 挂起 ' + holdsData.length : '');
+      if (!list.length) {
+        trafficList.innerHTML = '';
+        trafficList.appendChild(emptyPlaceholder);
+        emptyPlaceholder.style.display = 'flex';
+        return;
+      }
+      emptyPlaceholder.style.display = 'none';
+      trafficList.innerHTML = list.map(function (item) {
+        const methodClass = 'method-' + String(item.method || 'get').toLowerCase();
+        const statusClass = item.isHold ? 'status-4xx' : (item.status >= 500 ? 'status-5xx' : (item.status >= 400 ? 'status-4xx' : (item.status >= 300 ? 'status-3xx' : 'status-2xx')));
+        const isActive = item.id === currentSelectedId ? 'active' : '';
+        const holdClass = item.isHold ? 'hold-item' : '';
+        return (
+          '<div class="traffic-item ' + isActive + ' ' + holdClass + '" onclick="selectItem(\'' + item.id + '\',' + (item.isHold ? 'true' : 'false') + ')">' +
+            '<div class="item-top"><div class="item-left">' +
+              '<span class="method-pill ' + methodClass + '">' + escapeHtml(item.method) + '</span>' +
+              '<span class="status-badge-sm ' + statusClass + '">' + escapeHtml(item.status) + '</span>' +
+              '<span class="item-url" title="' + escapeHtml(item.url) + '">' + escapeHtml(item.url) + '</span>' +
+            '</div></div>' +
+            '<div class="item-bottom"><span>' + escapeHtml(item.appliedRule || '') + '</span><span>' +
+              (item.isHold ? '<span class="tag-hold">HOLD</span> ' : '') +
+              (item.isMock ? '<span class="tag-mock">MOCK</span> ' : '') +
+              (item.isModified ? '<span class="tag-mod">MOD</span> ' : '') +
+              escapeHtml(item.timestamp || '') + (item.duration ? ' · ' + item.duration + 'ms' : '') +
+            '</span></div></div>'
+        );
+      }).join('');
+    }
+
+    function showEmptyDetail() {
+      noSelectPrompt.style.display = 'flex';
+      detailView.style.display = 'none';
+      holdEditor.style.display = 'none';
+      document.getElementById('inspectHoldId').value = '';
+      document.getElementById('inspectHoldPhase').value = '';
+    }
+
+    function fillInspectEditors(item, isHold) {
+      const method = item.method || 'GET';
+      const methodEl = document.getElementById('metaMethod');
+      if (![].slice.call(methodEl.options).some(function (o) { return o.value === method; })) {
+        const extra = document.createElement('option');
+        extra.value = method;
+        extra.textContent = method;
+        methodEl.appendChild(extra);
+      }
+      methodEl.value = method;
+      document.getElementById('metaStatus').value = item.status == null || item.status === 'HOLD' ? (item.phase === 'response' ? '200' : '') : String(item.status);
+      document.getElementById('metaDuration').textContent = isHold ? '挂起中' : ((item.duration || 0) + 'ms');
+      document.getElementById('metaTime').textContent = item.timestamp || '--';
+      document.getElementById('metaRule').textContent = item.appliedRule || '--';
+      document.getElementById('metaTarget').value = resolveAbsoluteUrl(item.targetUrl || item.url || '', item);
+      fillHeaderKv('req', item.requestHeaders || item.headers || {});
+      fillHeaderKv('res', item.responseHeaders || {});
+      setJsonPaneText(document.querySelector('[data-json-pane="req"]'), item.requestBody || item.body || '');
+      setJsonPaneText(document.querySelector('[data-json-pane="res"]'), item.responseBody || '');
+    }
+
+    window.selectItem = function (id, isHold) {
+      currentSelectedId = id;
+      renderTrafficList();
+      if (isHold) {
+        const hold = holdsData.find(function (h) { return h.id === id; });
+        if (!hold) return showEmptyDetail();
+        noSelectPrompt.style.display = 'none';
+        holdEditor.style.display = 'none';
+        detailView.style.display = 'flex';
+        document.getElementById('inspectHoldId').value = hold.id;
+        document.getElementById('inspectHoldPhase').value = hold.phase === 'response' ? 'response' : 'request';
+        document.getElementById('holdPhase').textContent = hold.phase === 'response' ? '响应前劫持 · 改完再交还给页面' : '发送前劫持 · 改完再发出去';
+        document.getElementById('holdMethod').value = hold.method || 'GET';
+        document.getElementById('holdUrl').value = hold.url || '';
+        document.getElementById('holdHeaders').value = headersToText(hold.headers);
+        document.getElementById('holdBody').value = hold.body || '';
+        document.getElementById('holdMockStatus').value = hold.status || 200;
+        document.getElementById('holdMockBody').value = hold.phase === 'response' ? (hold.responseBody || '') : '{}';
+        document.getElementById('holdId').value = hold.id;
+        document.getElementById('holdIsResponse').value = hold.phase === 'response' ? '1' : '0';
+        fillInspectEditors({
+          method: hold.method,
+          url: hold.url,
+          targetUrl: hold.url,
+          pageUrl: hold.pageUrl,
+          status: hold.status,
+          duration: 0,
+          timestamp: '挂起中',
+          appliedRule: hold.phase === 'response' ? '响应前劫持' : '发送前劫持',
+          requestHeaders: hold.headers,
+          requestBody: hold.body,
+          responseHeaders: hold.responseHeaders,
+          responseBody: hold.responseBody,
+          phase: hold.phase
+        }, true);
+        setInspectHoldMode(true, hold.phase);
+        switchSubTab(hold.phase === 'response' ? 'subResBody' : ((hold.body && String(hold.body).trim()) ? 'subReqBody' : 'subHeaders'));
+        return;
+      }
+      const item = recordsData.find(function (r) { return r.id === id; });
+      if (!item) return showEmptyDetail();
+      holdEditor.style.display = 'none';
+      noSelectPrompt.style.display = 'none';
+      detailView.style.display = 'flex';
+      document.getElementById('inspectHoldId').value = '';
+      document.getElementById('inspectHoldPhase').value = '';
+      fillInspectEditors(item, false);
+      setInspectHoldMode(false, '');
+    };
+
+    function renderHeaders(table, headers) {
+      const obj = headers || {};
+      const keys = Object.keys(obj);
+      if (!keys.length) {
+        table.innerHTML = '<tr><td colspan="2" style="color:var(--text-muted)">无</td></tr>';
+        return;
+      }
+      table.innerHTML = '<tr><th>Key</th><th>Value</th></tr>' + keys.map(function (k) {
+        return '<tr><td>' + escapeHtml(k) + '</td><td>' + escapeHtml(obj[k]) + '</td></tr>';
+      }).join('');
+    }
+
+    function currentHoldPayload(action) {
+      const isRes = document.getElementById('inspectHoldPhase').value === 'response' || document.getElementById('holdIsResponse').value === '1';
+      const interceptId = document.getElementById('inspectHoldId').value || document.getElementById('holdId').value;
+      const method = document.getElementById('metaMethod').value || document.getElementById('holdMethod').value;
+      const url = resolveAbsoluteUrl(document.getElementById('metaTarget').value || document.getElementById('holdUrl').value, currentRecord() || holdsData[0]);
+      const reqHeaders = textToHeaders(document.getElementById('reqHeadersEditor').value || document.getElementById('holdHeaders').value);
+      const reqBody = document.getElementById('reqBodyEditor').value;
+      const status = parseInt(document.getElementById('metaStatus').value, 10) || parseInt(document.getElementById('holdMockStatus').value, 10) || 200;
+      const resBody = document.getElementById('resBodyEditor').value;
+      const payload = {
+        interceptId: interceptId,
+        action: action,
+        request: {
+          method: method,
+          url: url,
+          headers: reqHeaders,
+          body: reqBody
+        }
+      };
+      if (action === 'mock' || isRes) {
+        payload.mock = {
+          status: status,
+          headers: textToHeaders(document.getElementById('resHeadersEditor').value),
+          body: resBody || '{}'
+        };
+        payload.response = {
+          status: status,
+          headers: textToHeaders(document.getElementById('resHeadersEditor').value),
+          body: resBody || ''
+        };
+      }
+      return payload;
+    }
+
+    async function resumeHold(action) {
+      const payload = currentHoldPayload(action);
+      await fetch('/__api/intercept/resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    function currentRecord() {
+      return recordsData.find(function (r) { return r.id === currentSelectedId; });
+    }
+
+    async function replayCurrent() {
+      const item = currentRecord();
+      if (!item) return;
+      const targetUrl = resolveAbsoluteUrl(item.targetUrl || item.url || '', item);
+      if (!isAbsoluteHttpUrl(targetUrl)) {
+        loadCurrentCaptureIntoRequest();
+        requestStatus.textContent = '当前 URL 是相对路径，请补全域名后再发送';
+        return;
+      }
+      const response = await fetch('/__api/replay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: item.method,
+          url: targetUrl,
+          headers: item.requestHeaders || {},
+          body: item.requestBody || ''
+        })
+      });
+      const result = await response.json().catch(function () { return {}; });
+      if (!response.ok || result.success === false) {
+        requestStatus.textContent = result.error || ('重放失败：HTTP ' + response.status);
+        switchWorkspaceTab('requestWorkspace');
+      }
+    }
+
+    function setApplyHint(text) {
+      const hint = document.getElementById('resBodyHint');
+      const sendHint = document.getElementById('inspectSendHint');
+      if (hint) {
+        hint.textContent = text;
+        hint.classList.add('hot');
+      }
+      if (sendHint) {
+        sendHint.textContent = text;
+        sendHint.classList.add('hot');
+      }
+    }
+
+    // 中文说明：已完成记录不能改已经结束的那一发，所以登记一次性回写并让原页面自己刷新再请求。
+    async function applyEditedToPage(item) {
+      const targetUrl = resolveAbsoluteUrl(document.getElementById('metaTarget').value || item.targetUrl || item.url || '', item);
+      if (!isAbsoluteHttpUrl(targetUrl)) {
+        setApplyHint('这条 URL 不是完整地址，没法回写原页面。');
+        return;
+      }
+      const pageUrl = String(item.pageUrl || '').trim();
+      if (!isAbsoluteHttpUrl(pageUrl)) {
+        setApplyHint('这条记录没有业务页地址。请在 Chrome 打开目标页再抓一次，然后点「修改后发送」。');
+        return;
+      }
+      const status = parseInt(document.getElementById('metaStatus').value, 10) || item.status || 200;
+      const resBody = document.getElementById('resBodyEditor').value || item.responseBody || '';
+      const resHeaders = textToHeaders(document.getElementById('resHeadersEditor').value);
+      if (!resHeaders['content-type'] && !resHeaders['Content-Type']) {
+        resHeaders['content-type'] = 'application/json; charset=utf-8';
+      }
+      const btn = document.getElementById('btnInspectSend');
+      btn.disabled = true;
+      try {
+        const response = await fetch('/__api/page-apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            method: document.getElementById('metaMethod').value || item.method || 'GET',
+            url: targetUrl,
+            pageUrl: pageUrl,
+            response: {
+              status: status,
+              headers: resHeaders,
+              body: resBody
+            }
+          })
+        });
+        const result = await response.json().catch(function () { return {}; });
+        if (!response.ok || result.success === false) {
+          setApplyHint(result.error || ('回写失败：HTTP ' + response.status));
+          return;
+        }
+        pendingPageApplyId = result.apply && result.apply.id ? result.apply.id : '';
+        if (pendingPageApplyTimer) window.clearTimeout(pendingPageApplyTimer);
+        setApplyHint('已把改后数据交给原页面，正在刷新…');
+        pendingPageApplyTimer = window.setTimeout(function () {
+          if (!pendingPageApplyId) return;
+          setApplyHint('原页面还没刷新。请确认 Chrome 里开着这个地址，并到 chrome://extensions 刷新「包监控」扩展。');
+        }, 8000);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // 中文说明：挂起中直接交还给页面；已完成记录改为回写原页面，不再只走网关重放。
+    async function sendEditedCurrent() {
+      const holdId = document.getElementById('inspectHoldId').value;
+      if (holdId) {
+        await resumeHold('continue');
+        return;
+      }
+      const item = currentRecord();
+      if (!item) return;
+      await applyEditedToPage(item);
+    }
+
+    // 中文说明：发送前把相对路径补成绝对地址，并回写到输入框，避免看起来还是 /h5/...
+    function requestEditorPayload() {
+      const raw = String(requestUrl.value || '').trim();
+      if (!raw) throw new Error('请填写请求 URL');
+      const url = resolveAbsoluteUrl(raw, currentRecord());
+      if (!isAbsoluteHttpUrl(url)) throw new Error('请求 URL 必须是完整的 http(s) 地址');
+      if (url !== requestUrl.value) requestUrl.value = url;
+      const method = String(requestMethod.value || 'GET').toUpperCase();
+      return {
+        method,
+        url,
+        headers: textToHeaders(requestHeaders.value),
+        body: ['GET', 'HEAD'].includes(method) ? '' : requestBody.value,
+        pageUrl: lastPageUrl
+      };
+    }
+
+    // 把请求结果写入右侧响应面板；抓包记录仍由 SSE 自动回流，不重复插入本地列表。
+    function renderRequestResponse(record) {
+      requestResponseStatus.textContent = record.status == null ? '--' : String(record.status);
+      requestResponseDuration.textContent = (record.duration == null ? '--' : record.duration + 'ms');
+      requestResponseRecord.textContent = record.id || '--';
+      requestResponseHeaders.textContent = headersToText(record.responseHeaders) || '--';
+      // 中文说明：请求工作台的响应也按 JSON 上色，方便对照审查区。
+      const pretty = prettyJson(record.responseBody);
+      if (tryParseJson(record.responseBody).ok) requestResponseBody.innerHTML = highlightJson(pretty);
+      else requestResponseBody.textContent = pretty;
+    }
+
+    async function sendRequestFromEditor() {
+      const btn = document.getElementById('btnSendRequest');
+      try {
+        await refreshLastPageUrl();
+        const payload = requestEditorPayload();
+        btn.disabled = true;
+        btn.textContent = '发送中…';
+        requestStatus.textContent = '网关发送中';
+        const response = await fetch('/__api/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json().catch(function () { return {}; });
+        if (!response.ok || result.success === false) throw new Error(result.error || ('HTTP ' + response.status));
+        renderRequestResponse(result.record || {});
+        requestStatus.textContent = '已发送 · ' + (result.record?.status ?? '--');
+      } catch (e) {
+        requestStatus.textContent = '发送失败';
+        requestResponseBody.textContent = e.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '发送';
+      }
+    }
+
+    // 中文说明：从当前抓包回填请求编辑器；相对路径会按页面 origin 自动补成 http(s) 地址。
+    async function refreshLastPageUrl() {
+      try {
+        const res = await fetch('/__api/runtime');
+        const json = await res.json();
+        if (json && json.lastPageUrl) lastPageUrl = json.lastPageUrl;
+      } catch (e) {}
+    }
+
+    async function loadCurrentCaptureIntoRequest() {
+      const item = currentRecord();
+      if (!item) {
+        requestStatus.textContent = '请先在“抓包”选择记录';
+        return;
+      }
+      await refreshLastPageUrl();
+      requestMethod.value = document.getElementById('metaMethod').value || item.method || 'GET';
+      requestUrl.value = resolveAbsoluteUrl(document.getElementById('metaTarget').value || item.targetUrl || item.url || '', item);
+      requestHeaders.value = document.getElementById('reqHeadersEditor').value || headersToText(item.requestHeaders);
+      requestBody.value = document.getElementById('reqBodyEditor').value || item.requestBody || '';
+      if (isAbsoluteHttpUrl(requestUrl.value)) requestStatus.textContent = '已载入当前抓包';
+      else requestStatus.textContent = '已载入，请补全绝对 URL';
+      switchWorkspaceTab('requestWorkspace');
+    }
+
+    function clearRequestEditor() {
+      requestMethod.value = 'GET';
+      requestUrl.value = '';
+      requestHeaders.value = '';
+      requestBody.value = '';
+      requestResponseStatus.textContent = '--';
+      requestResponseDuration.textContent = '--';
+      requestResponseRecord.textContent = '--';
+      requestResponseHeaders.textContent = '--';
+      requestResponseBody.textContent = '发送请求后，响应正文会显示在这里。';
+      requestStatus.textContent = '等待发送';
+    }
+
+    async function copyText(text, btn) {
+      try { await navigator.clipboard.writeText(text); } catch (e) {}
+      if (btn) {
+        const old = btn.textContent;
+        btn.textContent = '已复制';
+        setTimeout(function () { btn.textContent = old; }, 800);
+      }
+    }
+
+    function pathOf(url) {
+      try { return new URL(url, location.origin).pathname; } catch (e) { return url; }
+    }
+
+    async function makeRuleFromCurrent() {
+      const item = currentRecord();
+      if (!item) return;
+      const pathname = pathOf(item.url);
+      await fetch('/__api/rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add',
+          rule: {
+            name: 'Mock ' + pathname,
+            type: 'mock_response',
+            matchUrl: escapeRegex(pathname),
+            mockStatus: item.status || 200,
+            mockBody: document.getElementById('resBodyEditor').value || item.responseBody || '{}'
+          }
+        })
+      });
+      switchMainTab('rulesTab');
+    }
+
+    async function holdNextCurrent() {
+      const item = currentRecord();
+      if (!item) return;
+      // 中文说明：下次既拦请求也拦响应；用完整 URL 锚定，避免同时挂住 /attachments 等相近路径。
+      await saveInterceptConfig({
+        mode: 'once',
+        matchUrl: '^' + escapeRegex(item.url || '') + '$',
+        once: true,
+        interceptResponse: true
+      });
+    }
+
+    function renderRules() {
+      const listEl = document.getElementById('rulesList');
+      if (!rulesData.length) {
+        listEl.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">暂无拦截规则，可在下方快速创建，或从报文审查点「转为 Mock 规则」。</div>';
+        return;
+      }
+      listEl.innerHTML = rulesData.map(function (rule) {
+        let badge = '<span class="rule-badge badge-mock">MOCK</span>';
+        let desc = (rule.matchUrl || '') + ' → ' + (rule.mockStatus || 200);
+        if (rule.type === 'inject_header') {
+          badge = '<span class="rule-badge badge-inject">HEADER</span>';
+          desc = (rule.matchUrl || '') + ' · ' + (rule.headerKey || '') + '=' + (rule.headerValue || '');
+        } else if (rule.type === 'tamper_body') {
+          badge = '<span class="rule-badge badge-inject">BODY</span>';
+          desc = (rule.matchUrl || '') + ' · 改写请求体';
+        }
+        return '<div class="rule-item"><div class="rule-info"><div class="rule-title-row"><span class="rule-name">' +
+          escapeHtml(rule.name) + '</span>' + badge + '</div><div class="rule-desc">' + escapeHtml(desc) +
+          '</div></div><div style="display:flex;align-items:center;gap:10px;"><label class="toggle-switch"><input type="checkbox" ' +
+          (rule.enabled ? 'checked' : '') + ' onchange="toggleRule(\'' + rule.id + '\')"><span class="toggle-slider"></span></label>' +
+          '<button onclick="deleteRule(\'' + rule.id + '\')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">🗑</button></div></div>';
+      }).join('');
+    }
+
+    window.toggleRule = async function (id) {
+      await fetch('/__api/rules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'toggle', id: id }) });
+    };
+    window.deleteRule = async function (id) {
+      if (confirm('确认删除该规则吗？')) {
+        await fetch('/__api/rules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id: id }) });
+      }
+    };
+
+    function switchMainTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tabId); });
+      document.querySelectorAll('.tab-content').forEach(function (c) { c.classList.toggle('active', c.id === tabId); });
+    }
+
+    // 顶层工作区切换只控制“抓包 / 请求”，内部的报文审查和规则 Tab 继续沿用原逻辑。
+    function switchWorkspaceTab(tabId) {
+      document.querySelectorAll('.workspace-tab-btn').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.workspaceTab === tabId);
+      });
+      document.querySelectorAll('.workspace-tab-panel').forEach(function (panel) {
+        panel.classList.toggle('active', panel.id === tabId);
+      });
+    }
+
+    function syncRuleForm() {
+      const type = document.getElementById('selectRuleType').value;
+      document.getElementById('mockFields').style.display = type === 'mock_response' ? 'flex' : 'none';
+      document.getElementById('headerFields').style.display = type === 'inject_header' ? 'flex' : 'none';
+      document.getElementById('bodyFields').style.display = type === 'tamper_body' ? 'flex' : 'none';
+    }
+
+    document.getElementById('modeSeg').addEventListener('click', function (e) {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      saveInterceptConfig({ mode: btn.dataset.mode, once: btn.dataset.mode === 'once' });
+    });
+    document.getElementById('inputMatchUrlLive').addEventListener('change', function (e) {
+      saveInterceptConfig({ matchUrl: e.target.value, mode: interceptConfig.mode === 'off' ? 'match' : interceptConfig.mode });
+    });
+    document.getElementById('chkInterceptResponse').addEventListener('change', function (e) {
+      saveInterceptConfig({ interceptResponse: e.target.checked });
+    });
+    document.getElementById('inputTimeout').addEventListener('change', function (e) {
+      saveInterceptConfig({ timeoutMs: (parseInt(e.target.value, 10) || 30) * 1000 });
+    });
+    document.getElementById('inputSearch').addEventListener('input', function (e) {
+      filterText = e.target.value.trim();
+      renderTrafficList();
+    });
+    document.getElementById('selectMethodFilter').addEventListener('change', function (e) {
+      filterMethod = e.target.value;
+      renderTrafficList();
+    });
+
+    document.getElementById('btnHoldSend').addEventListener('click', function () { resumeHold('continue'); });
+    document.getElementById('btnHoldPass').addEventListener('click', function () {
+      const hold = holdsData.find(function (h) { return h.id === (document.getElementById('inspectHoldId').value || document.getElementById('holdId').value); });
+      if (!hold) return;
+      document.getElementById('holdMethod').value = hold.method;
+      document.getElementById('holdUrl').value = hold.url;
+      document.getElementById('holdHeaders').value = headersToText(hold.headers);
+      document.getElementById('holdBody').value = hold.body || '';
+      document.getElementById('metaMethod').value = hold.method || 'GET';
+      document.getElementById('metaTarget').value = hold.url || '';
+      document.getElementById('reqHeadersEditor').value = headersToText(hold.headers);
+      document.getElementById('reqBodyEditor').value = hold.body || '';
+      resumeHold('continue');
+    });
+    document.getElementById('btnHoldDrop').addEventListener('click', function () { resumeHold('drop'); });
+    document.getElementById('btnHoldMock').addEventListener('click', function () { resumeHold('mock'); });
+    document.getElementById('btnInspectSend').addEventListener('click', sendEditedCurrent);
+    document.getElementById('btnHoldPassInspect').addEventListener('click', function () {
+      document.getElementById('btnHoldPass').click();
+    });
+    document.getElementById('btnHoldMockInspect').addEventListener('click', function () { resumeHold('mock'); });
+    document.getElementById('btnHoldDropInspect').addEventListener('click', function () { resumeHold('drop'); });
+
+    document.getElementById('btnReplay').addEventListener('click', replayCurrent);
+    document.getElementById('btnCopyCurl').addEventListener('click', function (e) {
+      const item = currentRecord();
+      if (item) copyText(toCurl({
+        method: document.getElementById('metaMethod').value || item.method,
+        url: document.getElementById('metaTarget').value || item.url,
+        requestHeaders: textToHeaders(document.getElementById('reqHeadersEditor').value),
+        requestBody: document.getElementById('reqBodyEditor').value
+      }), e.currentTarget);
+    });
+    document.getElementById('btnMakeRule').addEventListener('click', makeRuleFromCurrent);
+    document.getElementById('btnHoldNext').addEventListener('click', holdNextCurrent);
+    document.getElementById('btnCopyReq').addEventListener('click', function (e) { copyText(document.getElementById('reqBodyEditor').value, e.currentTarget); });
+    document.getElementById('btnCopyRes').addEventListener('click', function (e) { copyText(document.getElementById('resBodyEditor').value, e.currentTarget); });
+    document.getElementById('btnSendRequest').addEventListener('click', sendRequestFromEditor);
+    document.getElementById('btnLoadCapture').addEventListener('click', loadCurrentCaptureIntoRequest);
+    document.getElementById('btnClearRequest').addEventListener('click', clearRequestEditor);
+    document.getElementById('btnCopyRequestResponse').addEventListener('click', function (e) {
+      copyText(requestResponseBody.textContent, e.currentTarget);
+    });
+
+    document.getElementById('selectRuleType').addEventListener('change', syncRuleForm);
+    document.getElementById('formAddRule').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const type = document.getElementById('selectRuleType').value;
+      const newRule = {
+        name: document.getElementById('inputRuleName').value,
+        type: type,
+        matchUrl: String(document.getElementById('inputMatchUrl').value || '').trim()
+      };
+      if (type === 'mock_response') {
+        newRule.mockStatus = parseInt(document.getElementById('inputMockStatus').value, 10) || 200;
+        newRule.mockBody = document.getElementById('inputMockBody').value || '{}';
+      } else if (type === 'inject_header') {
+        newRule.headerKey = document.getElementById('inputHeaderKey').value;
+        newRule.headerValue = document.getElementById('inputHeaderValue').value;
+      } else {
+        newRule.newBody = document.getElementById('inputTamperBody').value || '';
+      }
+      await fetch('/__api/rules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'add', rule: newRule }) });
+      document.getElementById('inputRuleName').value = '';
+    });
+
+    btnTest.addEventListener('click', async function () {
+      btnTest.disabled = true;
+      btnTest.textContent = '发送中…';
+      try { await fetch('/__api/test', { method: 'POST' }); } catch (e) {}
+      setTimeout(function () {
+        btnTest.disabled = false;
+        btnTest.textContent = '模拟请求';
+      }, 300);
+    });
+    btnClear.addEventListener('click', async function () { await fetch('/__api/clear', { method: 'POST' }); });
+
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { switchMainTab(btn.dataset.tab); });
+    });
+    document.querySelectorAll('.workspace-tab-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { switchWorkspaceTab(btn.dataset.workspaceTab); });
+    });
+    document.querySelectorAll('.sub-tab-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        switchSubTab(btn.dataset.sub);
+      });
+    });
+    document.getElementById('btnAddReqHeader').addEventListener('click', function () {
+      document.getElementById('reqHeaderRows').appendChild(kvRow('', ''));
+    });
+    document.getElementById('btnAddResHeader').addEventListener('click', function () {
+      document.getElementById('resHeaderRows').appendChild(kvRow('', ''));
+    });
+
+    window.addEventListener('DOMContentLoaded', function () {
+      bindHeaderKv('req');
+      bindHeaderKv('res');
+      document.querySelectorAll('[data-json-pane]').forEach(bindJsonPane);
+      initSSE();
+    });
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+interface:
+  display_name: "包监控"
+  short_description: "查看浏览器请求，支持断点修改、重放、Mock 与 curl 导出"
+  brand_color: "#7C3AED"
+  default_prompt: "使用 $hello 启动包监控，并在 Codex 右侧浏览器面板打开看板，查看最近捕获的请求。"

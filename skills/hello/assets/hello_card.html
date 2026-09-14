@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <!-- 基础字符集与移动端自适应视口设置 -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>包监控状态卡</title>
+  <style>
+    /* ========================================================
+       【全局重置与 CSS 变量定义】
+       定义高级暗黑微光调色板、圆角、毛玻璃滤镜与过渡曲线
+       ======================================================== */
+    :root {
+      --bg-gradient: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 50%, #020617 100%);
+      --card-bg: rgba(255, 255, 255, 0.04);
+      --card-border: rgba(255, 255, 255, 0.12);
+      --card-glow: rgba(99, 102, 241, 0.25);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-purple: #818cf8;
+      --accent-pink: #f43f5e;
+      --accent-emerald: #10b981;
+      --accent-cyan: #06b6d4;
+      --transition-smooth: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* 全局盒子模型与无外边距设置 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 页面基础布局：居中显示，隐藏溢出，背景深色渐变 */
+    body {
+      min-height: 100vh;
+      background: var(--bg-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+      color: var(--text-main);
+      position: relative;
+    }
+
+    /* ========================================================
+       【背景动态环境光】
+       提供柔和呼吸的光晕球，增强毛玻璃折射质感
+       ======================================================== */
+    .ambient-glow {
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(129, 140, 248, 0.25) 0%, rgba(244, 63, 94, 0.15) 50%, transparent 70%);
+      filter: blur(50px);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 0;
+      pointer-events: none;
+      animation: ambientPulse 8s ease-in-out infinite alternate;
+    }
+
+    /* 环境光呼吸动画 */
+    @keyframes ambientPulse {
+      0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
+      100% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.9; }
+    }
+
+    /* ========================================================
+       【卡片主体容器】
+       采用拟态磨砂玻璃（Glassmorphism）与多重微高光阴影
+       ======================================================== */
+    .card-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 480px;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 28px 24px;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7),
+                  0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+                  0 0 35px -5px var(--card-glow);
+      transition: var(--transition-smooth);
+      overflow: hidden;
+    }
+
+    /* 鼠标悬停微抬起与高光增强 */
+    .card-container:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8),
+                  0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+                  0 0 45px 0px rgba(99, 102, 241, 0.35);
+    }
+
+    /* ========================================================
+       【卡片头部：发光指南针 Logo 与标题】
+       包含旋转发光的 SVG 科技罗盘与状态徽章
+       ======================================================== */
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    /* Logo 外层环绕光晕 */
+    .logo-wrapper {
+      position: relative;
+      width: 58px;
+      height: 58px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(244, 63, 94, 0.15));
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 18px;
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+      cursor: pointer;
+    }
+
+    /* 科技罗盘 SVG 样式及缓慢自转动效 */
+    .compass-svg {
+      width: 36px;
+      height: 36px;
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .logo-wrapper:hover .compass-svg {
+      transform: rotate(180deg) scale(1.1);
+    }
+
+    /* 标题文字排版区域 */
+    .header-text {
+      flex-grow: 1;
+    }
+
+    .header-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .header-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 30%, #c7d2fe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* 实时在线小绿点及徽章 */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: dotBlink 1.8s infinite;
+    }
+
+    @keyframes dotBlink {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    .header-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* ========================================================
+       【包监控提示展示区】
+       动态淡入淡出文字与气泡卡片，包含灵动的装饰标识
+       ======================================================== */
+    .greeting-box {
+      position: relative;
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 16px 18px;
+      margin-bottom: 20px;
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      transition: var(--transition-smooth);
+    }
+
+    .greeting-icon {
+      font-size: 22px;
+      margin-right: 12px;
+      flex-shrink: 0;
+      animation: gentleWave 2s ease-in-out infinite;
+    }
+
+    @keyframes gentleWave {
+      0%, 100% { transform: rotate(0deg); }
+      20% { transform: rotate(-12deg); }
+      40% { transform: rotate(14deg); }
+      60% { transform: rotate(-4deg); }
+      80% { transform: rotate(8deg); }
+    }
+
+    .greeting-text {
+      font-size: 14px;
+      line-height: 1.55;
+      color: #e2e8f0;
+      font-weight: 500;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    /* 切换文本时的淡出淡入类 */
+    .greeting-text.fade-out {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+
+    /* ========================================================
+       【心跳自检面板】
+       点击心跳自检后平滑展开，展示状态指标与动态扫描条
+       ======================================================== */
+    .diagnostic-panel {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+      background: rgba(30, 41, 59, 0.45);
+      border: 1px solid transparent;
+      border-radius: 14px;
+      margin-bottom: 0;
+      padding: 0 16px;
+    }
+
+    .diagnostic-panel.active {
+      max-height: 160px;
+      opacity: 1;
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      border-color: rgba(99, 102, 241, 0.25);
+    }
+
+    .diagnostic-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-purple);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .diagnostic-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .metric-item {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 8px 6px;
+      text-align: center;
+    }
+
+    .metric-name {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .metric-val {
+      font-size: 12px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    /* 扫描光带动画 */
+    .scan-line {
+      height: 2px;
+      width: 100%;
+      background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+      margin-top: 10px;
+      border-radius: 2px;
+      animation: scanMove 2s linear infinite;
+    }
+
+    @keyframes scanMove {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* ========================================================
+       【互动操作按钮组】
+       包含三个高颜值按钮：切换提示、网关自检、专属互动
+       ======================================================== */
+    .button-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* 交互通用按钮样式 */
+    .btn {
+      position: relative;
+      flex: 1;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 11px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      overflow: hidden;
+      transition: var(--transition-smooth);
+      user-select: none;
+    }
+
+    /* 按钮 1：切换抓包提示（主渐变按钮） */
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.55);
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    }
+
+    /* 按钮 2：心跳自检（暗灰透亮次级按钮） */
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.07);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      transform: translateY(-2px);
+    }
+
+    /* 按钮 3：专属互动（微光粉桃色特效按钮） */
+    .btn-special {
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.15), rgba(236, 72, 153, 0.2));
+      color: #fda4af;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+
+    .btn-special:hover {
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.28), rgba(236, 72, 153, 0.35));
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(244, 63, 94, 0.35);
+    }
+
+    .btn:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    /* 按钮水波纹效果 */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.45);
+      transform: scale(0);
+      animation: rippleAnim 0.6s linear;
+      pointer-events: none;
+    }
+
+    @keyframes rippleAnim {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    /* ========================================================
+       【微动效与粒子画布】
+       用于专属互动触发的心形与光晕粒子喷涌
+       ======================================================== */
+    #particleCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* 卡片弹性跳跃类 */
+    .bounce-effect {
+      animation: cardBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes cardBounce {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.025); }
+      70% { transform: scale(0.99); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 背景环境辉光 -->
+  <div class="ambient-glow"></div>
+
+  <!-- 卡片核心主容器 -->
+  <div class="card-container" id="mainCard">
+    <!-- 粒子特效画布 -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- 头部区域：发光罗盘 Logo 与状态信息 -->
+    <header class="card-header">
+      <!-- 发光指南针 Logo 盒子 -->
+      <div class="logo-wrapper" id="logoBtn" title="点击旋转指南针">
+        <svg class="compass-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 罗盘外圈科技刻度圆环 -->
+          <circle cx="50" cy="50" r="44" stroke="#818cf8" stroke-width="2.5" stroke-dasharray="4 6" opacity="0.75" />
+          <circle cx="50" cy="50" r="36" stroke="url(#ringGradient)" stroke-width="1.5" opacity="0.9" />
+          
+          <!-- 指针北极（渐变粉红发光指针） -->
+          <polygon points="50,15 57,50 50,44" fill="url(#northGrad)" />
+          <polygon points="50,15 43,50 50,44" fill="#f43f5e" />
+          
+          <!-- 指针南极（浅蓝科技色指针） -->
+          <polygon points="50,85 57,50 50,56" fill="url(#southGrad)" />
+          <polygon points="50,85 43,50 50,56" fill="#38bdf8" />
+          
+          <!-- 核心枢纽微光小圆点 -->
+          <circle cx="50" cy="50" r="4.5" fill="#ffffff" />
+          <circle cx="50" cy="50" r="2" fill="#6366f1" />
+
+          <!-- 渐变色滤镜定义 -->
+          <defs>
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="50%" stop-color="#818cf8" />
+              <stop offset="100%" stop-color="#f43f5e" />
+            </linearGradient>
+            <linearGradient id="northGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fb7185" />
+              <stop offset="100%" stop-color="#e11d48" />
+            </linearGradient>
+            <linearGradient id="southGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#7dd3fc" />
+              <stop offset="100%" stop-color="#0284c7" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <!-- 标题文本区域 -->
+      <div class="header-text">
+        <div class="header-title-row">
+          <span class="header-title">包监控</span>
+          <span class="status-badge"><span class="pulse-dot"></span>Active</span>
+        </div>
+        <div class="header-subtitle">浏览器抓包 · 请求修改 · Mock · 重放</div>
+      </div>
+    </header>
+
+    <!-- 包监控状态与使用提示展示卡 -->
+    <div class="greeting-box">
+      <span class="greeting-icon" id="greetingIcon">✨</span>
+      <span class="greeting-text" id="greetingContent">包监控已就位，可查看 fetch/XHR 流量并进行断点调试。</span>
+    </div>
+
+    <!-- 心跳自检结果折叠面板 -->
+    <div class="diagnostic-panel" id="diagPanel">
+      <div class="diagnostic-title">
+        <span>心跳健康自检报表</span>
+        <span style="color:#10b981; font-weight:700;">● 状态完美</span>
+      </div>
+      <div class="diagnostic-grid">
+        <div class="metric-item">
+          <div class="metric-name">版本号</div>
+          <div class="metric-val">v0.1.0</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-name">市场类型</div>
+          <div class="metric-val">personal</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-name">响应延迟</div>
+          <div class="metric-val">1 ms</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-name">网关状态</div>
+          <div class="metric-val" style="color:#10b981;">正常</div>
+        </div>
+      </div>
+      <!-- 动态扫描条 -->
+      <div class="scan-line"></div>
+    </div>
+
+    <!-- 交互操作按钮区 -->
+    <div class="button-group">
+      <!-- 按钮 1：切换抓包提示 -->
+      <button class="btn btn-primary" id="btnGreet">
+        <span>👋</span>
+        <span>切换提示</span>
+      </button>
+
+      <!-- 按钮 2：心跳自检 -->
+      <button class="btn btn-secondary" id="btnCheck">
+        <span>⚡</span>
+        <span>网关自检</span>
+      </button>
+
+      <!-- 按钮 3：专属互动 -->
+      <button class="btn btn-special" id="btnInteract">
+        <span>💖</span>
+        <span>专属互动</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       【前端交互 JavaScript 逻辑】
+       包含水波纹计算、抓包提示轮播、自检折叠、心形粒子引擎
+       ======================================================== -->
+  <script>
+    // ----------------------------------------------------
+    // 1. 获取 DOM 元素引用
+    // ----------------------------------------------------
+    const mainCard = document.getElementById('mainCard');
+    const greetingText = document.getElementById('greetingContent');
+    const greetingIcon = document.getElementById('greetingIcon');
+    const diagPanel = document.getElementById('diagPanel');
+    const btnGreet = document.getElementById('btnGreet');
+    const btnCheck = document.getElementById('btnCheck');
+    const btnInteract = document.getElementById('btnInteract');
+    const logoBtn = document.getElementById('logoBtn');
+    const canvas = document.getElementById('particleCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // ----------------------------------------------------
+    // 2. 初始化画布尺寸（响应式同步）
+    // ----------------------------------------------------
+    function resizeCanvas() {
+      canvas.width = mainCard.clientWidth;
+      canvas.height = mainCard.clientHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // ----------------------------------------------------
+    // 3. 包监控提示语料库（覆盖抓包、断点、Mock 与重放）
+    // ----------------------------------------------------
+    const greetingsList = [
+      { icon: "✨", text: "包监控已就位，可查看 fetch/XHR 流量并进行断点调试。" },
+      { icon: "🔎", text: "先确认 Chrome 扩展已启用，再用真实页面请求验证抓包链路。" },
+      { icon: "🚀", text: "发送前劫持默认关闭；需要修改请求时可按 URL 精确匹配。" },
+      { icon: "🧪", text: "Mock 适合验证前端容错，但不能替代真实后端响应证据。" },
+      { icon: "🎯", text: "选中请求后可以重放、复制 curl，或生成对应的 Mock 规则。" },
+      { icon: "🛡️", text: "分享抓包内容前记得脱敏 Cookie、Token 与个人信息。" },
+      { icon: "💡", text: "网关、扩展、模拟请求和真实抓包是四种不同的验证状态。" }
+    ];
+    let greetIndex = 0;
+
+    // ----------------------------------------------------
+    // 4. 按钮水波纹（Ripple Effect）统一工具函数
+    // ----------------------------------------------------
+    function createRipple(event, button) {
+      const circle = document.createElement('span');
+      const diameter = Math.max(button.clientWidth, button.clientHeight);
+      const radius = diameter / 2;
+      const rect = button.getBoundingClientRect();
+
+      circle.style.width = circle.style.height = `${diameter}px`;
+      circle.style.left = `${event.clientX - rect.left - radius}px`;
+      circle.style.top = `${event.clientY - rect.top - radius}px`;
+      circle.classList.add('ripple');
+
+      const existingRipple = button.querySelector('.ripple');
+      if (existingRipple) {
+        existingRipple.remove();
+      }
+      button.appendChild(circle);
+    }
+
+    // ----------------------------------------------------
+    // 5. 事件绑定：点击“切换提示”
+    // ----------------------------------------------------
+    btnGreet.addEventListener('click', (e) => {
+      createRipple(e, btnGreet);
+      
+      // 文字淡出动画
+      greetingText.classList.add('fade-out');
+      
+      setTimeout(() => {
+        // 轮播切换下一条抓包提示
+        greetIndex = (greetIndex + 1) % greetingsList.length;
+        greetingIcon.textContent = greetingsList[greetIndex].icon;
+        greetingText.textContent = greetingsList[greetIndex].text;
+        // 文字淡入动画
+        greetingText.classList.remove('fade-out');
+      }, 250);
+    });
+
+    // ----------------------------------------------------
+    // 6. 事件绑定：点击“心跳自检”
+    // ----------------------------------------------------
+    let isDiagOpen = false;
+    btnCheck.addEventListener('click', (e) => {
+      createRipple(e, btnCheck);
+      isDiagOpen = !isDiagOpen;
+      if (isDiagOpen) {
+        diagPanel.classList.add('active');
+        btnCheck.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+      } else {
+        diagPanel.classList.remove('active');
+        btnCheck.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+      }
+    });
+
+    // ----------------------------------------------------
+    // 7. 粒子引擎：心形与发光光斑喷涌模拟
+    // ----------------------------------------------------
+    let particles = [];
+
+    // 粒子构造类
+    class Particle {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.size = Math.random() * 9 + 6;
+        this.speedX = (Math.random() - 0.5) * 6;
+        this.speedY = (Math.random() - 0.8) * 6;
+        this.color = Math.random() > 0.4 ? '#f43f5e' : (Math.random() > 0.5 ? '#ec4899' : '#818cf8');
+        this.alpha = 1;
+        this.decay = Math.random() * 0.02 + 0.015;
+        this.type = Math.random() > 0.3 ? 'heart' : 'star';
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotSpeed = (Math.random() - 0.5) * 0.1;
+      }
+
+      // 更新粒子运动与透明度
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.speedY += 0.08; // 微弱重力
+        this.alpha -= this.decay;
+        this.rotation += this.rotSpeed;
+      }
+
+      // 绘制粒子
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, this.alpha);
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+
+        if (this.type === 'heart') {
+          // 绘制爱心符号
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          const d = this.size;
+          ctx.moveTo(0, 0);
+          ctx.bezierCurveTo(-d / 2, -d / 2, -d, d / 3, 0, d);
+          ctx.bezierCurveTo(d, d / 3, d / 2, -d / 2, 0, 0);
+          ctx.fill();
+        } else {
+          // 绘制四角星光闪烁
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(0, 0, this.size / 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    // 连续渲染循环
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+        particles[i].draw();
+        if (particles[i].alpha <= 0) {
+          particles.splice(i, 1);
+          i--;
+        }
+      }
+      if (particles.length > 0) {
+        requestAnimationFrame(animateParticles);
+      }
+    }
+
+    // ----------------------------------------------------
+    // 8. 事件绑定：点击“专属互动”
+    // ----------------------------------------------------
+    btnInteract.addEventListener('click', (e) => {
+      createRipple(e, btnInteract);
+      
+      // 卡片弹性微跳跃动效
+      mainCard.classList.remove('bounce-effect');
+      void mainCard.offsetWidth; // 触发重绘
+      mainCard.classList.add('bounce-effect');
+
+      // 从按钮中心发射爱心粒子群
+      const rect = btnInteract.getBoundingClientRect();
+      const cardRect = mainCard.getBoundingClientRect();
+      const originX = rect.left + rect.width / 2 - cardRect.left;
+      const originY = rect.top + rect.height / 2 - cardRect.top;
+
+      for (let i = 0; i < 28; i++) {
+        particles.push(new Particle(originX, originY));
+      }
+      animateParticles();
+    });
+
+    // ----------------------------------------------------
+    // 9. 点击 Logo 罗盘触发顺时针加速转动趣味彩蛋
+    // ----------------------------------------------------
+    let currentDegree = 0;
+    logoBtn.addEventListener('click', () => {
+      currentDegree += 360;
+      const svg = logoBtn.querySelector('.compass-svg');
+      svg.style.transform = `rotate(${currentDegree}deg) scale(1.15)`;
+      setTimeout(() => {
+        svg.style.transform = `rotate(${currentDegree}deg) scale(1)`;
+      }, 500);
+    });
+  </script>
+</body>
+</html>

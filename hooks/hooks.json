@@ -1,0 +1,36 @@
+{
+  "description": "包监控生命周期摘要：在会话开始和用户发消息前读取本地网关概况。",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/scripts/start_packet_monitor.mjs",
+            "timeout": 5,
+            "statusMessage": "启动包监控网关"
+          },
+          {
+            "type": "command",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/packet_monitor_summary.py",
+            "timeout": 3,
+            "statusMessage": "读取包监控摘要"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/packet_monitor_summary.py",
+            "timeout": 3,
+            "statusMessage": "同步包监控摘要"
+          }
+        ]
+      }
+    ]
+  }
+}
