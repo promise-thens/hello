@@ -34,7 +34,8 @@ const PID_FILE = path.join(__dirname, 'gateway.pid');
 const LOG_FILE = path.join(__dirname, 'gateway.log');
 
 // 优先查找资产目录下的看板文件，若不存在则回退至当前目录
-const ASSET_DASHBOARD_PATH = '/Users/huyaohang/plugins/hello/skills/hello/assets/hello_dashboard.html';
+// 中文说明：看板文件跟着插件目录走，避免写死旧的绝对路径
+const ASSET_DASHBOARD_PATH = path.join(__dirname, '..', 'skills', 'hello', 'assets', 'hello_dashboard.html');
 const LOCAL_DASHBOARD_PATH = path.join(__dirname, 'hello_dashboard.html');
 
 // --------------------------------------------------------

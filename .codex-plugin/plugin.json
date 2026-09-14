@@ -13,7 +13,7 @@
     "replay",
     "postman-request"
   ],
-  "skills": "./skills/",
+  "skills": "./插件/浏览器插件/skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "\u5305\u76d1\u63a7",

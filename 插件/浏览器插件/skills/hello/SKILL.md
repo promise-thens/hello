@@ -9,9 +9,9 @@ description: 本地浏览器抓包与 HTTP 请求调试。当用户要抓取或�
 
 ## 关键位置
 
-- 网关入口：`/Users/huyaohang/plugins/hello/gateway/proxy_gateway.mjs`
-- 启动脚本：`/Users/huyaohang/plugins/hello/scripts/start_packet_monitor.mjs`
-- Chrome 扩展：`/Users/huyaohang/plugins/hello/extension`
+- 网关入口：`/Users/huyaohang/plugins/hello/插件/浏览器插件/gateway/proxy_gateway.mjs`
+- 启动脚本：`/Users/huyaohang/plugins/hello/插件/浏览器插件/scripts/start_packet_monitor.mjs`
+- Chrome 扩展：`/Users/huyaohang/plugins/hello/插件/浏览器插件`
 - 抓包看板：`http://localhost:8910/`
 - 网关探活：`http://127.0.0.1:8910/__api/status`
 
@@ -25,12 +25,12 @@ description: 本地浏览器抓包与 HTTP 请求调试。当用户要抓取或�
 
    ```bash
    # 中文说明：启动并探活本地包监控网关；脚本输出 Codex 侧边栏看板地址
-   node /Users/huyaohang/plugins/hello/scripts/start_packet_monitor.mjs
+   node /Users/huyaohang/plugins/hello/插件/浏览器插件/scripts/start_packet_monitor.mjs
    ```
 
 2. 脚本探活成功后，调用 Codex 宿主的 `open_in_codex`，使用 `placement: "right"` 和 `target: { type: "browser", url: "http://localhost:8910/" }` 打开侧边栏浏览器。不要用普通 `open` 命令冒充 Codex 侧边栏；脚本本身只负责网关，侧边栏由宿主工具完成。
 3. 如果用户只想检查状态，报告网关、规则数量和待放行请求，不擅自修改规则。
-4. 用户要求抓取真实网页请求时，提醒其在 Chrome 中加载或启用 `/Users/huyaohang/plugins/hello/extension`，然后在目标页面产生请求。不得把网关内置“模拟测试请求”当成真实站点抓包证据。
+4. 用户要求抓取真实网页请求时，提醒其在 Chrome 中加载或启用 `/Users/huyaohang/plugins/hello/插件/浏览器插件`，然后在目标页面产生请求。不得把网关内置“模拟测试请求”当成真实站点抓包证据。
 5. 修改、放行、丢弃、Mock 或重放请求前，明确目标请求和变更内容。优先使用看板现有操作；不要直接改动扩展内部兼容标识。
 6. 用户要改某个响应字段并让原页面刷新时，调用 MCP `apply_edited_to_page`，不要用 `replay_request` 代替。
 

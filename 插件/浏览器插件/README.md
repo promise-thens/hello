@@ -17,7 +17,7 @@ chrome://extensions/
 2. 点击左上角的 **【加载已解压的扩展程序】(Load unpacked)** 按钮。
 3. 在弹出的文件选择器中，选择本目录：
    ```text
-   /Users/huyaohang/plugins/hello/extension
+   /Users/huyaohang/plugins/hello/插件/浏览器插件
    ```
 
 ### 第三步：点击扩展图标开始抓包与篡改

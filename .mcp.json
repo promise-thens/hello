@@ -2,7 +2,7 @@
   "mcpServers": {
     "packet-monitor": {
       "command": "node",
-      "args": ["./mcp/packet_monitor_mcp.mjs"],
+      "args": ["./插件/浏览器插件/mcp/packet_monitor_mcp.mjs"],
       "cwd": "."
     }
   }

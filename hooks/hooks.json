@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${PLUGIN_ROOT}/scripts/start_packet_monitor.mjs",
+            "command": "node ${PLUGIN_ROOT}/插件/浏览器插件/scripts/start_packet_monitor.mjs",
             "timeout": 5,
             "statusMessage": "启动包监控网关"
           },

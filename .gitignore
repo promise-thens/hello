@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# 网关运行痕迹：日志和最近打开的业务页地址
-gateway/gateway.log
-gateway/last-page-url.txt
+# 网关运行痕迹：日志、PID 和最近打开的业务页地址
+**/gateway.log
+**/gateway.pid
+**/last-page-url.txt

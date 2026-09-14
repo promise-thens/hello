@@ -14,11 +14,11 @@ description: 查看包监控本地网关、Chrome 扩展、规则和断点状态
 
    ```bash
    # 中文说明：启动并探活自用抓包网关；该服务仍按用户约定监听 0.0.0.0
-   node /Users/huyaohang/plugins/hello/scripts/start_packet_monitor.mjs
+   node /Users/huyaohang/plugins/hello/插件/浏览器插件/scripts/start_packet_monitor.mjs
    ```
 
 3. 如果用户要求打开看板，探活成功后调用 Codex 宿主 `open_in_codex`，把 `http://localhost:8910/` 放入右侧浏览器面板；不要把普通 Chrome 窗口当成 Codex 侧边栏。
-4. 说明“网关在线”不等于“Chrome 扩展已注入”，也不等于“真实目标请求已捕获”。需要真实流量时，提醒用户在 Chrome 加载 `/Users/huyaohang/plugins/hello/extension` 并刷新目标页面。
+4. 说明“网关在线”不等于“Chrome 扩展已注入”，也不等于“真实目标请求已捕获”。需要真实流量时，提醒用户在 Chrome 加载 `/Users/huyaohang/plugins/hello/插件/浏览器插件` 并刷新目标页面。
 
 ## 证据边界
 
