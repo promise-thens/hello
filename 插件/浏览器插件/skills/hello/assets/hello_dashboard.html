@@ -836,18 +836,220 @@
 
     .rule-item {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 11px 12px;
+      flex-direction: column;
       background: #0f1624;
       border: 1px solid var(--card-border);
       border-radius: var(--radius-md);
       transition: var(--transition);
-      gap: 10px;
+      overflow: hidden;
     }
     .rule-item:hover {
       border-color: var(--card-border-hover);
     }
+    /* 中文说明：规则列表项头部摘要行，点击展开/折叠抽屉 */
+    .rule-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 12px;
+      cursor: pointer;
+      user-select: none;
+      gap: 10px;
+      transition: background 0.15s;
+    }
+    .rule-header-row:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    /* 中文说明：折叠箭头指示图标 */
+    .rule-chevron {
+      color: var(--text-muted);
+      font-size: 10px;
+      transition: transform 0.2s;
+      margin-right: 2px;
+      display: inline-block;
+    }
+    .rule-item.expanded .rule-chevron {
+      transform: rotate(90deg);
+    }
+    /* 中文说明：规则详细配置折叠抽屉容器 */
+    .rule-detail-drawer {
+      display: none;
+      padding: 14px;
+      border-top: 1px solid rgba(148, 163, 184, 0.12);
+      background: rgba(15, 23, 42, 0.65);
+      flex-direction: column;
+      gap: 10px;
+    }
+    .rule-item.expanded .rule-detail-drawer {
+      display: flex;
+    }
+    /* 中文说明：抽屉底部操作按钮栏，单独占一行，不再压住 Body 编辑区。 */
+    .rule-drawer-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .btn-sm { padding: 4px 8px; font-size: 11px; border-radius: 6px; }
+
+    /* 中文说明：Mock Body 改成字段表，路径/类型/值分列，比整段 JSON 更好认、更好改。 */
+    .mock-field-workbench {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #0d1420;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .field-table-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .field-filter {
+      flex: 1;
+      min-width: 140px;
+      height: 28px;
+      padding: 0 8px;
+      background: #101826;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: var(--text-main);
+      font-size: 12px;
+      outline: none;
+    }
+    .field-filter:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 8px var(--primary-glow);
+    }
+    .field-table-status {
+      font-size: 11px;
+      font-weight: 700;
+      color: #86efac;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .field-table-status.bad { color: #fbbf24; }
+    .field-table {
+      display: flex;
+      flex-direction: column;
+      max-height: min(52vh, 480px);
+      overflow: auto;
+      background: #101826;
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 6px;
+    }
+    .field-table-head,
+    .field-row {
+      display: grid;
+      grid-template-columns: minmax(168px, 0.9fr) 78px minmax(0, 1.35fr) 28px;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 10px;
+    }
+    .field-table-head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      background: #121b2a;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    }
+    .field-table-empty {
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 14px 10px;
+    }
+    .field-row {
+      border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+    }
+    .field-row:nth-child(odd) { background: rgba(255,255,255,0.015); }
+    .field-row:hover { background: rgba(125, 211, 252, 0.07); }
+    .field-row input,
+    .field-row select,
+    .field-row textarea {
+      width: 100%;
+      background: #0b1220;
+      border: 1px solid var(--card-border);
+      border-radius: 5px;
+      color: var(--text-main);
+      font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      outline: none;
+    }
+    .field-row input,
+    .field-row select { height: 30px; padding: 0 8px; }
+    .field-row textarea {
+      min-height: 54px;
+      padding: 6px 8px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+    .field-row input:focus,
+    .field-row select:focus,
+    .field-row textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 8px var(--primary-glow);
+    }
+    /* 中文说明：路径看起来像标签，值才是主编辑区。 */
+    .field-row .field-key {
+      color: #9ae6ff;
+      font-weight: 600;
+      background: transparent;
+      border-color: transparent;
+      padding-left: 4px;
+    }
+    .field-row .field-key:hover,
+    .field-row .field-key:focus {
+      background: #0b1220;
+      border-color: var(--card-border);
+    }
+    .field-row .field-type {
+      color: var(--text-sub);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 0 4px;
+    }
+    .field-row[data-kind="string"] .field-val { color: #bbf7d0; }
+    .field-row[data-kind="number"] .field-val { color: #fcd34d; }
+    .field-row[data-kind="boolean"] .field-val { color: #fecdd3; }
+    .field-row[data-kind="null"] .field-val { color: #94a3b8; }
+    .field-row[data-kind="object"] .field-val,
+    .field-row[data-kind="array"] .field-val { color: #c4b5fd; }
+    .field-del {
+      height: 30px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .field-del:hover { color: #f87171; }
+    .mock-raw-json {
+      display: none;
+      min-height: 220px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #d7deea;
+    }
+    /* 中文说明：原文模式或非法 JSON 时只露出 textarea，避免和字段表叠在一起。 */
+    .mock-field-workbench.is-raw-open .mock-raw-json,
+    .mock-field-workbench.is-table-off .mock-raw-json { display: block; }
+    .mock-field-workbench.is-raw-open .field-table,
+    .mock-field-workbench.is-raw-open [data-field-add],
+    .mock-field-workbench.is-raw-open [data-field-filter],
+    .mock-field-workbench.is-table-off .field-table,
+    .mock-field-workbench.is-table-off [data-field-add],
+    .mock-field-workbench.is-table-off [data-field-filter] { display: none; }
 
     .rule-info {
       flex: 1;
@@ -2691,13 +2893,446 @@
       });
     }
 
+    // 中文说明：记录展开的规则 ID 集合，重新渲染时保持展开状态
+    const expandedRuleIds = new Set();
+    // 中文说明：innerHTML 重建前把未保存的 Mock Body 暂存起来，避免 SSE/展开把表格改动冲掉。
+    const mockBodyDrafts = {};
+
+    // 中文说明：切换单条规则的抽屉展开/折叠
+    window.toggleRuleExpand = function (id) {
+      if (expandedRuleIds.has(id)) expandedRuleIds.delete(id);
+      else expandedRuleIds.add(id);
+      renderRules();
+    };
+
+    // 中文说明：保存单条规则的编辑修改，直接通过数组向网关 POST 热生效
+    window.saveRuleEdit = async function (id, btn) {
+      const rule = rulesData.find(function (r) { return r.id === id; });
+      if (!rule) return;
+
+      const nameInput = document.getElementById('rule_name_' + id);
+      const matchInput = document.getElementById('rule_match_' + id);
+      if (nameInput && nameInput.value.trim()) rule.name = nameInput.value.trim();
+      if (matchInput) rule.matchUrl = matchInput.value.trim();
+
+      if (rule.type === 'mock_response') {
+        const statusInput = document.getElementById('rule_status_' + id);
+        const bodyInput = document.getElementById('rule_body_' + id);
+        const bench = document.querySelector('[data-mock-fields="' + id + '"]');
+        // 中文说明：保存前先把字段表写回 textarea，避免只改了格子但正文还是旧的。
+        if (bench && !bench.classList.contains('is-raw-open') && !bench.classList.contains('is-table-off')) {
+          if (!syncMockFieldTableToTextarea(bench)) {
+            if (btn) btn.textContent = '字段不合法';
+            setApplyHint('字段值不合法，先改好再保存');
+            return;
+          }
+        }
+        if (statusInput) rule.mockStatus = parseInt(statusInput.value, 10) || 200;
+        if (bodyInput) rule.mockBody = bodyInput.value;
+      } else if (rule.type === 'inject_header') {
+        const keyInput = document.getElementById('rule_key_' + id);
+        const valInput = document.getElementById('rule_val_' + id);
+        if (keyInput) rule.headerKey = keyInput.value.trim();
+        if (valInput) rule.headerValue = valInput.value.trim();
+      } else if (rule.type === 'tamper_body') {
+        const tamperInput = document.getElementById('rule_tamper_' + id);
+        if (tamperInput) rule.tamperBody = tamperInput.value;
+      }
+
+      const origText = btn ? btn.textContent : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '保存中…';
+      }
+
+      try {
+        const resp = await fetch('/__api/rules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rules: rulesData })
+        });
+        const res = await resp.json().catch(function () { return {}; });
+        if (resp.ok && res.success !== false) {
+          if (btn) btn.textContent = '已保存 ✓';
+          setApplyHint('✓ 规则「' + rule.name + '」修改已保存并生效');
+          renderRules();
+        } else {
+          if (btn) btn.textContent = '保存失败 ✗';
+          setApplyHint('保存规则失败：' + (res.error || resp.statusText));
+        }
+      } catch (err) {
+        if (btn) btn.textContent = '保存异常 ✗';
+        setApplyHint('保存规则异常：' + err.message);
+      } finally {
+        if (btn) {
+          setTimeout(function () {
+            btn.disabled = false;
+            btn.textContent = origText;
+          }, 1200);
+        }
+      }
+    };
+
+
+    // 中文说明：把对象型 JSON 展平成「点路径 / 类型 / 值」行；数组和空对象当叶子，不往下拆。
+    function flattenJsonFields(value, prefix, rows) {
+      rows = rows || [];
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        const keys = Object.keys(value);
+        if (!keys.length) {
+          if (prefix) rows.push({ path: prefix, type: 'object', raw: '{}' });
+          return rows;
+        }
+        keys.forEach(function (k) {
+          flattenJsonFields(value[k], prefix ? prefix + '.' + k : k, rows);
+        });
+        return rows;
+      }
+      const type = value === null ? 'null' : (Array.isArray(value) ? 'array' : typeof value);
+      let raw;
+      if (type === 'array' || type === 'object') raw = JSON.stringify(value);
+      else if (type === 'null') raw = 'null';
+      else if (type === 'string') raw = value;
+      else raw = String(value);
+      if (prefix) rows.push({ path: prefix, type: type, raw: raw });
+      return rows;
+    }
+
+    // 中文说明：按行上的类型把输入框文本收成真正的 JSON 值。
+    function coerceFieldValue(type, raw) {
+      if (type === 'null') return null;
+      if (type === 'boolean') return String(raw) === 'true';
+      if (type === 'number') {
+        const n = Number(raw);
+        if (raw === '' || !Number.isFinite(n)) throw new Error('数字不合法');
+        return n;
+      }
+      if (type === 'object' || type === 'array') {
+        const parsed = tryParseJson(raw);
+        if (!parsed.ok) throw new Error('嵌套 JSON 不合法');
+        if (type === 'array' && !Array.isArray(parsed.value)) throw new Error('需要数组');
+        if (type === 'object' && (parsed.value === null || typeof parsed.value !== 'object' || Array.isArray(parsed.value))) {
+          throw new Error('需要对象');
+        }
+        return parsed.value;
+      }
+      return String(raw == null ? '' : raw);
+    }
+
+    // 中文说明：用点路径写回对象；中间层如果不是对象就改成对象。
+    function setByDotPath(root, path, value) {
+      const keys = String(path || '').split('.').map(function (k) { return k.trim(); }).filter(Boolean);
+      if (!keys.length) return false;
+      let cur = root;
+      for (let i = 0; i < keys.length - 1; i += 1) {
+        const k = keys[i];
+        if (cur[k] == null || typeof cur[k] !== 'object' || Array.isArray(cur[k])) cur[k] = {};
+        cur = cur[k];
+      }
+      cur[keys[keys.length - 1]] = value;
+      return true;
+    }
+
+    // 中文说明：只有根是普通对象时才走字段表格，否则退回原始 JSON。
+    function mockBodyEditorMode(text) {
+      const parsed = tryParseJson(text);
+      if (parsed.empty) return { mode: 'object', value: {} };
+      if (!parsed.ok) return { mode: 'invalid', error: parsed.error || 'parse error' };
+      if (parsed.value !== null && typeof parsed.value === 'object' && !Array.isArray(parsed.value)) {
+        return { mode: 'object', value: parsed.value };
+      }
+      return { mode: 'raw', value: parsed.value };
+    }
+
+    function fieldValueControl(type, raw) {
+      if (type === 'boolean') {
+        const on = String(raw) === 'true';
+        return '<select class="field-val" data-field-val>' +
+          '<option value="true"' + (on ? ' selected' : '') + '>true</option>' +
+          '<option value="false"' + (!on ? ' selected' : '') + '>false</option>' +
+          '</select>';
+      }
+      if (type === 'null') {
+        return '<input class="field-val" data-field-val value="null" disabled />';
+      }
+      if (type === 'object' || type === 'array') {
+        return '<textarea class="field-val" data-field-val spellcheck="false">' + escapeHtml(raw || (type === 'array' ? '[]' : '{}')) + '</textarea>';
+      }
+      return '<input class="field-val" data-field-val spellcheck="false" value="' + escapeHtml(raw == null ? '' : raw) + '" />';
+    }
+
+    const FIELD_TYPE_LABELS = {
+      string: '文本',
+      number: '数字',
+      boolean: '布尔',
+      'null': '空',
+      object: '对象',
+      array: '数组'
+    };
+
+    function renderFieldTableRows(rows) {
+      const types = ['string', 'number', 'boolean', 'null', 'object', 'array'];
+      let html = '<div class="field-table-head"><span>字段路径</span><span>类型</span><span>值</span><span></span></div>';
+      if (!rows.length) {
+        html += '<div class="field-table-empty">还没有字段，点「添加字段」或改原始 JSON。</div>';
+        return html;
+      }
+      rows.forEach(function (row) {
+        html += '<div class="field-row" data-kind="' + escapeHtml(row.type) + '">';
+        html += '<input class="field-key" data-field-key spellcheck="false" title="完整路径，可改名" value="' + escapeHtml(row.path) + '" />';
+        html += '<select class="field-type" data-field-type title="字段类型">';
+        types.forEach(function (t) {
+          html += '<option value="' + t + '"' + (t === row.type ? ' selected' : '') + '>' + (FIELD_TYPE_LABELS[t] || t) + '</option>';
+        });
+        html += '</select>';
+        html += fieldValueControl(row.type, row.raw);
+        html += '<button type="button" class="field-del" data-field-del aria-label="删除字段">×</button>';
+        html += '</div>';
+      });
+      return html;
+    }
+
+    function readFieldTableRows(bench) {
+      const rows = [];
+      bench.querySelectorAll('.field-row').forEach(function (row) {
+        const path = (row.querySelector('[data-field-key]') || {}).value || '';
+        const type = (row.querySelector('[data-field-type]') || {}).value || 'string';
+        const valEl = row.querySelector('[data-field-val]');
+        rows.push({ path: String(path).trim(), type: type, raw: valEl ? valEl.value : '' });
+      });
+      return rows;
+    }
+
+    function fieldRowsToJson(rows) {
+      const root = {};
+      const seen = {};
+      let dup = false;
+      rows.forEach(function (row) {
+        if (!row.path) return;
+        if (seen[row.path]) dup = true;
+        seen[row.path] = true;
+        setByDotPath(root, row.path, coerceFieldValue(row.type, row.raw));
+      });
+      return { value: root, dup: dup };
+    }
+
+    function setFieldStatus(bench, text, bad) {
+      const status = bench.querySelector('[data-field-status]');
+      if (!status) return;
+      status.textContent = text || '';
+      status.classList.toggle('bad', !!bad);
+    }
+
+    function syncMockModeButtons(bench) {
+      const raw = bench.classList.contains('is-raw-open') || bench.classList.contains('is-table-off');
+      bench.querySelectorAll('[data-mock-mode]').forEach(function (btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-mock-mode') === (raw ? 'raw' : 'table'));
+      });
+    }
+
+    function applyMockFieldFilter(bench) {
+      const input = bench.querySelector('[data-field-filter]');
+      const q = input ? input.value.trim().toLowerCase() : '';
+      bench.querySelectorAll('.field-row').forEach(function (row) {
+        if (!q) { row.hidden = false; return; }
+        const path = (row.querySelector('[data-field-key]') || {}).value || '';
+        const val = (row.querySelector('[data-field-val]') || {}).value || '';
+        row.hidden = (path + ' ' + val).toLowerCase().indexOf(q) < 0;
+      });
+    }
+
+    // 中文说明：按 textarea 重画字段表；非法 JSON 或根不是对象时强制切到原文。
+    function refreshMockFieldTable(bench, opts) {
+      opts = opts || {};
+      const textarea = bench.querySelector('textarea.mock-raw-json');
+      const table = bench.querySelector('[data-field-table]');
+      if (!textarea || !table) return;
+      const mode = mockBodyEditorMode(textarea.value);
+      if (mode.mode !== 'object') {
+        bench.classList.add('is-table-off', 'is-raw-open');
+        table.innerHTML = '';
+        setFieldStatus(bench, mode.mode === 'invalid' ? '不是合法 JSON，先改原文' : '根节点不是对象，请用原文改', true);
+        syncMockModeButtons(bench);
+        return;
+      }
+      bench.classList.remove('is-table-off');
+      if (!opts.keepRaw) bench.classList.remove('is-raw-open');
+      if (opts.fromTextarea !== false) {
+        table.innerHTML = renderFieldTableRows(flattenJsonFields(mode.value, '', []));
+        applyMockFieldFilter(bench);
+      }
+      const count = table.querySelectorAll('.field-row').length;
+      const shown = table.querySelectorAll('.field-row:not([hidden])').length;
+      setFieldStatus(bench, count ? ('对象 · ' + shown + '/' + count + ' 个字段') : '空对象', false);
+      syncMockModeButtons(bench);
+    }
+
+    // 中文说明：表格改动写回 rule_body_${id}，保存/复制/格式化仍读这个 textarea。
+    function syncMockFieldTableToTextarea(bench) {
+      const textarea = bench.querySelector('textarea.mock-raw-json');
+      if (!textarea) return false;
+      try {
+        const packed = fieldRowsToJson(readFieldTableRows(bench));
+        textarea.value = JSON.stringify(packed.value, null, 2);
+        mockBodyDrafts[bench.getAttribute('data-mock-fields')] = textarea.value;
+        setFieldStatus(bench, packed.dup ? '有重复字段，后面的会覆盖前面的' : ('对象 · ' + readFieldTableRows(bench).filter(function (r) { return r.path; }).length + ' 个字段'), packed.dup);
+        return true;
+      } catch (err) {
+        setFieldStatus(bench, err.message || '字段值不合法', true);
+        return false;
+      }
+    }
+
+    function addMockFieldRow(bench) {
+      syncMockFieldTableToTextarea(bench);
+      const textarea = bench.querySelector('textarea.mock-raw-json');
+      const parsed = tryParseJson(textarea.value);
+      const root = parsed.ok && parsed.value && typeof parsed.value === 'object' && !Array.isArray(parsed.value) ? parsed.value : {};
+      // 中文说明：有嵌套时默认加到最后一行的父路径下，少改一层 data.xxx。
+      const rows = flattenJsonFields(root, '', []);
+      let prefix = '';
+      if (rows.length) {
+        const parts = String(rows[rows.length - 1].path || '').split('.');
+        if (parts.length > 1) prefix = parts.slice(0, -1).join('.') + '.';
+      }
+      let leaf = 'newField';
+      let i = 1;
+      while (rows.some(function (row) { return row.path === prefix + leaf; })) {
+        i += 1;
+        leaf = 'newField' + i;
+      }
+      setByDotPath(root, prefix + leaf, '');
+      textarea.value = JSON.stringify(root, null, 2);
+      mockBodyDrafts[bench.getAttribute('data-mock-fields')] = textarea.value;
+      refreshMockFieldTable(bench, { fromTextarea: true, keepRaw: bench.classList.contains('is-raw-open') });
+    }
+
+    function snapshotMockBodyDrafts() {
+      document.querySelectorAll('[data-mock-fields]').forEach(function (bench) {
+        const id = bench.getAttribute('data-mock-fields');
+        const ta = document.getElementById('rule_body_' + id);
+        if (id && ta) mockBodyDrafts[id] = ta.value;
+      });
+    }
+
+    function paintMockFieldTables() {
+      document.querySelectorAll('[data-mock-fields]').forEach(function (bench) {
+        refreshMockFieldTable(bench, { fromTextarea: true, keepRaw: false });
+      });
+    }
+
+    function bindRulesListMockFields() {
+      const listEl = document.getElementById('rulesList');
+      if (!listEl || listEl.dataset.mockBound === '1') return;
+      listEl.dataset.mockBound = '1';
+      listEl.addEventListener('input', function (e) {
+        const bench = e.target.closest('[data-mock-fields]');
+        if (!bench) return;
+        if (e.target.matches('[data-field-filter]')) {
+          applyMockFieldFilter(bench);
+          const total = bench.querySelectorAll('.field-row').length;
+          const shown = bench.querySelectorAll('.field-row:not([hidden])').length;
+          setFieldStatus(bench, total ? ('对象 · ' + shown + '/' + total + ' 个字段') : '空对象', false);
+          return;
+        }
+        if (e.target.matches('textarea.mock-raw-json')) {
+          mockBodyDrafts[bench.getAttribute('data-mock-fields')] = e.target.value;
+          refreshMockFieldTable(bench, { fromTextarea: true, keepRaw: true });
+          return;
+        }
+        if (e.target.closest('.field-row')) syncMockFieldTableToTextarea(bench);
+      });
+      listEl.addEventListener('change', function (e) {
+        const bench = e.target.closest('[data-mock-fields]');
+        if (!bench) return;
+        if (e.target.matches('[data-field-val]')) {
+          syncMockFieldTableToTextarea(bench);
+          return;
+        }
+        if (!e.target.matches('[data-field-type]')) return;
+        const row = e.target.closest('.field-row');
+        const type = e.target.value;
+        const valEl = row.querySelector('[data-field-val]');
+        let raw = valEl ? valEl.value : '';
+        if (type === 'object' && !tryParseJson(raw).ok) raw = '{}';
+        if (type === 'array' && !tryParseJson(raw).ok) raw = '[]';
+        if (type === 'boolean') raw = String(raw) === 'true' ? 'true' : 'false';
+        if (type === 'null') raw = 'null';
+        if (type === 'number' && !Number.isFinite(Number(raw))) raw = '0';
+        const wrap = document.createElement('div');
+        wrap.innerHTML = fieldValueControl(type, raw);
+        valEl.replaceWith(wrap.firstChild);
+        row.setAttribute('data-kind', type);
+        syncMockFieldTableToTextarea(bench);
+      });
+      // 中文说明：捕获阶段监听点击，避免抽屉 stopPropagation 把原文切换和增删字段吞掉。
+      listEl.addEventListener('click', function (e) {
+        const bench = e.target.closest('[data-mock-fields]');
+        if (!bench) return;
+        const modeBtn = e.target.closest('[data-mock-mode]');
+        if (modeBtn) {
+          const mode = modeBtn.getAttribute('data-mock-mode');
+          if (mode === 'raw') {
+            syncMockFieldTableToTextarea(bench);
+            bench.classList.add('is-raw-open');
+          } else {
+            bench.classList.remove('is-raw-open');
+            refreshMockFieldTable(bench, { fromTextarea: true, keepRaw: false });
+          }
+          syncMockModeButtons(bench);
+          return;
+        }
+        if (e.target.closest('[data-field-add]')) {
+          addMockFieldRow(bench);
+          return;
+        }
+        const del = e.target.closest('[data-field-del]');
+        if (del) {
+          del.closest('.field-row').remove();
+          syncMockFieldTableToTextarea(bench);
+          if (!bench.querySelector('.field-row')) {
+            refreshMockFieldTable(bench, { fromTextarea: true, keepRaw: bench.classList.contains('is-raw-open') });
+          }
+        }
+      }, true);
+    }
+
+
+    // 中文说明：一键格式化指定规则的 JSON Body
+    window.formatRuleJson = function (id) {
+      const textarea = document.getElementById('rule_body_' + id) || document.getElementById('rule_tamper_' + id);
+      if (!textarea) return;
+      const parsed = tryParseJson(textarea.value);
+      if (parsed.ok) {
+        textarea.value = JSON.stringify(parsed.value, null, 2);
+        const bench = textarea.closest('[data-mock-fields]');
+        if (bench) refreshMockFieldTable(bench, { fromTextarea: true, keepRaw: bench.classList.contains('is-raw-open') });
+      } else {
+        alert('格式化失败：当前内容不是合法的 JSON 格式');
+      }
+    };
+
+    // 中文说明：一键复制指定规则的 Body 文本
+    window.copyRuleBody = function (id, btn) {
+      const textarea = document.getElementById('rule_body_' + id) || document.getElementById('rule_tamper_' + id);
+      if (!textarea) return;
+      const bench = textarea.closest('[data-mock-fields]');
+      if (bench && !bench.classList.contains('is-raw-open')) syncMockFieldTableToTextarea(bench);
+      copyText(textarea.value, btn);
+    };
+
+
+    // 中文说明：渲染规则列表，增加抽屉式查看与编辑详细配置
     function renderRules() {
       const listEl = document.getElementById('rulesList');
+      snapshotMockBodyDrafts();
       if (!rulesData.length) {
         listEl.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">暂无拦截规则，可在下方快速创建，或从报文审查点「转为 Mock 规则」。</div>';
         return;
       }
       listEl.innerHTML = rulesData.map(function (rule) {
+        const isExpanded = expandedRuleIds.has(rule.id);
+        const mockBodyText = mockBodyDrafts[rule.id] != null ? mockBodyDrafts[rule.id] : (rule.mockBody || '');
         let badge = '<span class="rule-badge badge-mock">MOCK</span>';
         let desc = (rule.matchUrl || '') + ' → ' + (rule.mockStatus || 200);
         if (rule.type === 'inject_header') {
@@ -2707,12 +3342,122 @@
           badge = '<span class="rule-badge badge-inject">BODY</span>';
           desc = (rule.matchUrl || '') + ' · 改写请求体';
         }
-        return '<div class="rule-item"><div class="rule-info"><div class="rule-title-row"><span class="rule-name">' +
-          escapeHtml(rule.name) + '</span>' + badge + '</div><div class="rule-desc">' + escapeHtml(desc) +
-          '</div></div><div style="display:flex;align-items:center;gap:10px;"><label class="toggle-switch"><input type="checkbox" ' +
-          (rule.enabled ? 'checked' : '') + ' onchange="toggleRule(\'' + rule.id + '\')"><span class="toggle-slider"></span></label>' +
-          '<button onclick="deleteRule(\'' + rule.id + '\')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">🗑</button></div></div>';
+
+        // 中文说明：根据规则类型生成抽屉内部可编辑详情
+        let drawerHtml = '';
+        if (rule.type === 'mock_response') {
+          drawerHtml =
+            '<div style="display:flex;gap:10px;">' +
+              '<div class="form-group" style="flex:2;">' +
+                '<label class="form-label">规则名称</label>' +
+                '<input type="text" id="rule_name_' + rule.id + '" class="form-input" value="' + escapeHtml(rule.name || '') + '" />' +
+              '</div>' +
+              '<div class="form-group" style="flex:1;">' +
+                '<label class="form-label">Mock HTTP 状态码</label>' +
+                '<input type="number" id="rule_status_' + rule.id + '" class="form-input" value="' + (rule.mockStatus || 200) + '" />' +
+              '</div>' +
+            '</div>' +
+            '<div class="form-group">' +
+              '<label class="form-label">匹配 URL / 正则</label>' +
+              '<input type="text" id="rule_match_' + rule.id + '" class="form-input" value="' + escapeHtml(rule.matchUrl || '') + '" />' +
+            '</div>' +
+            '<div class="form-group">' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">' +
+                '<label class="form-label" style="margin:0;">Mock Response Body</label>' +
+                '<div style="display:flex;gap:6px;">' +
+                  '<button type="button" class="btn btn-secondary btn-sm" onclick="formatRuleJson(\x27' + rule.id + '\x27)">Format JSON</button>' +
+                  '<button type="button" class="btn btn-secondary btn-sm" onclick="copyRuleBody(\x27' + rule.id + '\x27, this)">一键复制</button>' +
+                '</div>' +
+              '</div>' +
+              '<div class="mock-field-workbench" data-mock-fields="' + rule.id + '">' +
+                '<div class="field-table-bar">' +
+                  '<div class="seg">' +
+                    '<button type="button" class="active" data-mock-mode="table">字段表</button>' +
+                    '<button type="button" data-mock-mode="raw">原文</button>' +
+                  '</div>' +
+                  '<input class="field-filter" data-field-filter spellcheck="false" placeholder="筛选字段 / 值" />' +
+                  '<button type="button" class="btn btn-secondary btn-sm" data-field-add>+ 添加字段</button>' +
+                  '<span class="field-table-status" data-field-status></span>' +
+                '</div>' +
+                '<div class="field-table" data-field-table></div>' +
+                '<textarea id="rule_body_' + rule.id + '" class="form-textarea mock-raw-json" spellcheck="false">' +
+                  escapeHtml(mockBodyText) +
+                '</textarea>' +
+              '</div>' +
+            '</div>';
+        } else if (rule.type === 'inject_header') {
+          drawerHtml =
+            '<div class="form-group">' +
+              '<label class="form-label">规则名称</label>' +
+              '<input type="text" id="rule_name_' + rule.id + '" class="form-input" value="' + escapeHtml(rule.name || '') + '" />' +
+            '</div>' +
+            '<div class="form-group">' +
+              '<label class="form-label">匹配 URL / 正则</label>' +
+              '<input type="text" id="rule_match_' + rule.id + '" class="form-input" value="' + escapeHtml(rule.matchUrl || '') + '" />' +
+            '</div>' +
+            '<div style="display:flex;gap:10px;">' +
+              '<div class="form-group" style="flex:1;">' +
+                '<label class="form-label">Header Key</label>' +
+                '<input type="text" id="rule_key_' + rule.id + '" class="form-input" value="' + escapeHtml(rule.headerKey || '') + '" />' +
+              '</div>' +
+              '<div class="form-group" style="flex:1;">' +
+                '<label class="form-label">Header Value</label>' +
+                '<input type="text" id="rule_val_' + rule.id + '" class="form-input" value="' + escapeHtml(rule.headerValue || '') + '" />' +
+              '</div>' +
+            '</div>';
+        } else if (rule.type === 'tamper_body') {
+          drawerHtml =
+            '<div class="form-group">' +
+              '<label class="form-label">规则名称</label>' +
+              '<input type="text" id="rule_name_' + rule.id + '" class="form-input" value="' + escapeHtml(rule.name || '') + '" />' +
+            '</div>' +
+            '<div class="form-group">' +
+              '<label class="form-label">匹配 URL / 正则</label>' +
+              '<input type="text" id="rule_match_' + rule.id + '" class="form-input" value="' + escapeHtml(rule.matchUrl || '') + '" />' +
+            '</div>' +
+            '<div class="form-group">' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">' +
+                '<label class="form-label" style="margin:0;">改写 Request Body</label>' +
+                '<div style="display:flex;gap:6px;">' +
+                  '<button type="button" class="btn btn-secondary btn-sm" onclick="formatRuleJson(\x27' + rule.id + '\x27)">Format JSON</button>' +
+                  '<button type="button" class="btn btn-secondary btn-sm" onclick="copyRuleBody(\x27' + rule.id + '\x27, this)">一键复制</button>' +
+                '</div>' +
+              '</div>' +
+              '<textarea id="rule_tamper_' + rule.id + '" class="form-textarea" style="height:120px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;" spellcheck="false">' +
+                escapeHtml(rule.tamperBody || '') +
+              '</textarea>' +
+            '</div>';
+        }
+
+        return (
+          '<div class="rule-item ' + (isExpanded ? 'expanded' : '') + '">' +
+            '<div class="rule-header-row" onclick="toggleRuleExpand(\x27' + rule.id + '\x27)">' +
+              '<div class="rule-info">' +
+                '<div class="rule-title-row">' +
+                  '<span class="rule-chevron">▶</span>' +
+                  '<span class="rule-name">' + escapeHtml(rule.name) + '</span>' +
+                  badge +
+                '</div>' +
+                '<div class="rule-desc">' + escapeHtml(desc) + '</div>' +
+              '</div>' +
+              '<div style="display:flex;align-items:center;gap:10px;" onclick="event.stopPropagation()">' +
+                '<label class="toggle-switch" title="开启/停用规则"><input type="checkbox" ' +
+                  (rule.enabled ? 'checked' : '') + ' onchange="toggleRule(\x27' + rule.id + '\x27)"><span class="toggle-slider"></span></label>' +
+                '<button onclick="deleteRule(\x27' + rule.id + '\x27)" title="删除规则" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px;">🗑</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="rule-detail-drawer">' +
+              drawerHtml +
+              '<div class="rule-drawer-actions">' +
+                '<button type="button" class="btn btn-pink btn-sm" onclick="saveRuleEdit(\x27' + rule.id + '\x27, this)">保存修改</button>' +
+                '<button type="button" class="btn btn-secondary btn-sm" onclick="toggleRuleExpand(\x27' + rule.id + '\x27)">收起抽屉</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>'
+        );
       }).join('');
+      bindRulesListMockFields();
+      paintMockFieldTables();
     }
 
     window.toggleRule = async function (id) {
