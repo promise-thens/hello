@@ -82,6 +82,28 @@
     try { return new RegExp(pattern).test(String(text || '')); } catch (e) { return false; }
   }
 
+  function isGatewayPage() {
+    const host = location.hostname;
+    return (host === 'localhost' || host === '127.0.0.1') && String(location.port) === '8910';
+  }
+
+  // 中文说明：把网关快照写进本地缓存，供后续 fetch/XHR 拦截立刻使用。
+  function applyRuntimeSnapshot(json) {
+    if (!json) return;
+    if (Array.isArray(json.rules)) rulesCache = json.rules;
+    if (json.config) {
+      interceptConfig = {
+        mode: json.config.mode || 'off',
+        matchUrl: json.config.matchUrl || '',
+        timeoutMs: json.config.timeoutMs || 30000,
+        interceptResponse: Boolean(json.config.interceptResponse),
+        once: Boolean(json.config.once),
+        onceStage: json.config.onceStage || ''
+      };
+    }
+    if (Array.isArray(json.pageApplies)) pageAppliesCache = json.pageApplies;
+  }
+
   async function syncRuntime(force) {
     const now = Date.now();
     if (!force && now - lastSyncTime < CACHE_TTL) return;
@@ -90,18 +112,7 @@
       const res = await origFetch(RUNTIME_API, { method: 'GET', headers: { 'x-hello-internal': '1' } });
       if (!res.ok) return;
       const json = await res.json();
-      if (json && Array.isArray(json.rules)) rulesCache = json.rules;
-      if (json && json.config) {
-        interceptConfig = {
-          mode: json.config.mode || 'off',
-          matchUrl: json.config.matchUrl || '',
-          timeoutMs: json.config.timeoutMs || 30000,
-          interceptResponse: Boolean(json.config.interceptResponse),
-          once: Boolean(json.config.once),
-          onceStage: json.config.onceStage || ''
-        };
-      }
-      if (json && Array.isArray(json.pageApplies)) pageAppliesCache = json.pageApplies;
+      applyRuntimeSnapshot(json);
       await processPageApplyReload();
     } catch (e) {}
   }
@@ -448,11 +459,27 @@
     if (data.type === 'SYNC_SWITCH') {
       globalEnabled = Boolean(data.enabled);
       console.log('[包监控 Interceptor] 全局抓包开关:', globalEnabled ? '已开启' : '已关闭');
+      return;
+    }
+    if (data.type === 'SYNC_RUNTIME') {
+      applyRuntimeSnapshot(data);
+      return;
+    }
+    if (data.type === 'RUNTIME_PAGE_APPLY') {
+      const apply = data.apply;
+      if (!apply || !apply.id) return;
+      if (apply.stage === 'applied') {
+        consumeLocalPageApply(apply.id);
+        return;
+      }
+      const next = (pageAppliesCache || []).filter(function (item) { return item && item.id !== apply.id; });
+      next.unshift(apply);
+      pageAppliesCache = next;
     }
   });
 
-  setInterval(function () { syncRuntime(true); }, 1000);
-  syncRuntime(true);
+  // 中文说明：启动时只拉一次快照；规则变更改由 content_bridge 的 SSE 推送，不再每秒轮询。
+  if (!isGatewayPage()) syncRuntime(true);
 
   window.fetch = async function (input, init) {
     init = init || {};
